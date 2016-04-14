@@ -30,6 +30,8 @@ import (
     "path/filepath"
     "os"
     "fmt"
+    "sort"
+    "io/ioutil"
 )
 
 func main() {
@@ -39,7 +41,7 @@ func main() {
     fmt.Printf("%d Songs loaded.\n", len(filenames))
 
     http.HandleFunc("/", indexHandler)
-    http.HandleFunc("/image/", imageHandler)
+    http.HandleFunc("/song/", songHandler)
     log.Fatal(http.ListenAndServe("localhost:8090", nil))
 }
 
@@ -66,12 +68,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
         Title: "Image gallery",
         Body:  "Welcome to the image gallery.",
     }
-    for name, img := range images {
-        data.Links = append(data.Links, Link{
-            URL:   "/image/" + name,
-            Title: img.Title,
-        })
-    }
 
     data.Songs = filenames
 
@@ -82,34 +78,46 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 // imageTemplate is a clone of indexTemplate that provides
 // alternate "sidebar" and "content" templates.
-var imageTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/image.tmpl"))
+var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/song.tmpl"))
 
 // Image is a data structure used to populate an imageTemplate.
-type Image struct {
+type SongFile struct {
     Title string
-    URL   string
+    Body  []byte
+}
+
+func loadSongFile(title string) (*SongFile, error) {
+    filename := "songs_master/" + title + ".song"
+    body, err := ioutil.ReadFile(filename)
+    if err != nil {
+        return nil, err
+    }
+    
+    return &SongFile{Title: title, Body: body}, nil
 }
 
 // imageHandler is an HTTP handler that serves the image pages.
-func imageHandler(w http.ResponseWriter, r *http.Request) {
-    data, ok := images[strings.TrimPrefix(r.URL.Path, "/image/")]
-    if !ok {
+func songHandler(w http.ResponseWriter, r *http.Request) {
+    target := strings.TrimPrefix(r.URL.Path, "/song/")
+
+    ind := sort.SearchStrings(filenames, target)
+    if ind > len(filenames) && filenames[ind] != target {
         http.NotFound(w, r)
+        return        
+    }
+
+    data, err := loadSongFile(target)
+    if err != nil {
+        log.Println(err)
         return
     }
-    if err := imageTemplate.Execute(w, data); err != nil {
+
+    if err := songTemplate.Execute(w, data); err != nil {
         log.Println(err)
     }
 }
 
-// images specifies the site content: a collection of images.
-var images = map[string]*Image{
-    "go":     {"The Go Gopher", "https://golang.org/doc/gopher/frontpage.png"},
-    "google": {"The Google Logo", "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"},
-}
-
 var filenames = make([]string, 0)
-
 
 func walkpath(path string, f os.FileInfo, err error) error {
     if (f.IsDir() && f.Name() != "songs_master") {
@@ -118,8 +126,9 @@ func walkpath(path string, f os.FileInfo, err error) error {
         return nil
     }
 
-    filenames = append(filenames, f.Name()[0:len(f.Name())-5])
+    file := f.Name()[0:len(f.Name())-5]
+    filenames = append(filenames, file)
 
-    fmt.Printf("%s\n", f.Name()[0:len(f.Name())-5])
+    fmt.Printf("%s\n", file)
     return nil
 }

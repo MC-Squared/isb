@@ -44,7 +44,7 @@
 
             <ul>
                 {{ range .Songs }}
-                    <li>{{ . }}</li>
+                    <li><a href='/song/{{ . }}'>{{ . }}</a></li>
                 {{ end }}
             </ul>
             {{.Body}}

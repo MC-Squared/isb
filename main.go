@@ -31,7 +31,7 @@ import (
     "os"
     "fmt"
     "sort"
-    "io/ioutil"
+    "bufio"
 )
 
 func main() {
@@ -83,17 +83,17 @@ var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles
 // Image is a data structure used to populate an imageTemplate.
 type SongFile struct {
     Title string
-    Body  []byte
+    Lines  []string
 }
 
 func loadSongFile(title string) (*SongFile, error) {
     filename := "songs_master/" + title + ".song"
-    body, err := ioutil.ReadFile(filename)
+    body, err := readLines(filename)
     if err != nil {
         return nil, err
     }
     
-    return &SongFile{Title: title, Body: body}, nil
+    return &SongFile{Title: title, Lines: body}, nil
 }
 
 // imageHandler is an HTTP handler that serves the image pages.
@@ -131,4 +131,22 @@ func walkpath(path string, f os.FileInfo, err error) error {
 
     fmt.Printf("%s\n", file)
     return nil
+}
+
+
+// readLines reads a whole file into memory
+// and returns a slice of its lines.
+func readLines(path string) ([]string, error) {
+  file, err := os.Open(path)
+  if err != nil {
+    return nil, err
+  }
+  defer file.Close()
+
+  var lines []string
+  scanner := bufio.NewScanner(file)
+  for scanner.Scan() {
+    lines = append(lines, scanner.Text())
+  }
+  return lines, scanner.Err()
 }

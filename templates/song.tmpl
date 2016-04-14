@@ -1,5 +1,7 @@
 {{define "content"}}
-    <span>{{ .Title }}</span>
+    {{ range .Lines }}
+        {{ . }}<br>
+    {{ end }}
 {{end}}
 
 {{define "sidebar"}}

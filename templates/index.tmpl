@@ -14,6 +14,8 @@
                 float: right;
             }
         </style>
+        {{ block "head" .}}
+        {{ end }}
     </head>
     <body>
         <h1>{{.Title}}</h1>

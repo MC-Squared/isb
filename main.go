@@ -90,14 +90,16 @@ type SongFile struct {
     Lines  []string
 }
 
-func loadSongFile(title string) (*SongFile, error) {
+func loadSongFile(title string) (*Song, error) {
     filename := "songs_master/" + title + ".song"
-    body, err := readLines(filename)
+
+    song,err := ParseSongFile(filename);
+
     if err != nil {
         return nil, err
     }
     
-    return &SongFile{Title: title, Lines: body}, nil
+    return song, nil
 }
 
 // imageHandler is an HTTP handler that serves the image pages.

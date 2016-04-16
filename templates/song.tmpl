@@ -1,9 +1,43 @@
-{{define "content"}}
-    {{ range .Lines }}
-        {{ . }}<br>
-    {{ end }}
-{{end}}
+{{ define "head" }}
+    <style>
+        .comment {
+            font-style: italic;
+        }
 
-{{define "sidebar"}}
-<a href="/">Back</a>
-{{end}}
+        .chorus {
+            margin-left: 10mm;
+        }
+    </style>
+{{ end }}
+
+{{ define "content" }}
+    <h3><i>{{ .Section }}</i></h2>
+    {{ range .BeforeComments }}
+        <span class='comment'>{{ . }}</span><br>
+    {{ end }}
+    {{ if .HasBeforeComments }}
+        <br>
+    {{ end }}
+
+    {{ range .Stanzas }}
+        {{ if .IsChorus }}
+            <div class='chorus'>
+        {{ end }}
+
+        {{ range .BeforeComments }}
+            <i>{{ . }}</i><br>
+        {{ end }}
+        {{ range .Lines }}
+            {{ .Text }}<br>
+        {{ end }}
+        <br>
+
+        {{ if .IsChorus }}
+            </div>
+        {{ end }}
+    {{ end }}
+{{ end }}
+
+{{ define "sidebar" }}
+    <a href="/">Back</a>
+{{ end }}

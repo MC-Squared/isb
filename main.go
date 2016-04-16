@@ -40,6 +40,10 @@ func main() {
 
     fmt.Printf("%d Songs loaded.\n", len(filenames))
 
+    song,_ := ParseSongFile("songs_master/Abba, Father.song");
+
+    fmt.Println(song)
+
     http.HandleFunc("/", indexHandler)
     http.HandleFunc("/song/", songHandler)
     log.Fatal(http.ListenAndServe("localhost:8090", nil))

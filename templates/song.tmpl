@@ -1,11 +1,24 @@
 {{ define "head" }}
     <style>
+        .body {
+            color: #332200;
+        }
+
         .comment {
-            font-style: italic;
+            color: #AAAAAA;
+        }
+
+        .section {
+            color: #77AACC;
         }
 
         .chorus {
             margin-left: 10mm;
+            color: #435400;
+        }
+
+        .chord {
+            color: #0005AA;
         }
 
         .hidden {
@@ -15,7 +28,8 @@
 {{ end }}
 
 {{ define "content" }}
-    <h3><i>{{ .Section }}</i></h2>
+    <span class='section'>{{ .Section }}</span><br>
+
     {{ range .BeforeComments }}
         <span class='comment'>{{ . }}</span><br>
     {{ end }}
@@ -35,15 +49,11 @@
         {{ $print_chords := .HasChords }}
         
         {{ range $line := .Lines }}
-            {{ $last_chord_pos := 0 }}
-
             {{ if $print_chords }}
-                {{ range .LineItems }}
-                    {{- if .IsChord -}}
-                        {{- .Text -}}
-                    {{- else -}}
-                    <span class='hidden'>{{- .Text -}}</span>
-                    {{- end -}}
+                {{ range $chord := .Chords }}
+                    <span class='hidden'>
+                        {{- $line.PreChordText $chord -}}
+                    </span><span class='chord'>{{- .Text -}}</span>
                 {{ end }}
                 <br>
             {{ end }}

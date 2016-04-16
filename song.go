@@ -33,11 +33,17 @@ type Stanza struct {
 type Line struct {
     Text string
     LineItems []LineItem
+    Chords []Chord
 }
 
 type LineItem struct {
     Text string
     IsChord bool
+}
+
+type Chord struct {
+    Text string
+    Position int
 }
 
 func ParseSongFile(filename string) (*Song, error) {
@@ -113,9 +119,17 @@ func ParseSongFile(filename string) (*Song, error) {
             line_items := make([]LineItem, 0)
             last_text_pos := 0
 
+            chord_len := 0
+
+            chords := make([]Chord, 0)
+
             for _, pos := range chords_pos {
                 chord_text := line[pos[0]+1:pos[1]-1]
+                chord_len += pos[1] - pos[0]
+                position := pos[1] - chord_len
                 //position := pos[0] - (ind * 2)
+
+                chords = append(chords, Chord{Text: chord_text, Position: position})
 
                 line_items = append(line_items, LineItem{Text:line[last_text_pos:pos[0]], IsChord: false})
                 last_text_pos = pos[1]
@@ -125,7 +139,7 @@ func ParseSongFile(filename string) (*Song, error) {
 
             //remove all chord markers
             line = chord_regex.ReplaceAllString(line, "")
-            lines = append(lines, Line{Text: line, LineItems: line_items})
+            lines = append(lines, Line{Text: line, LineItems: line_items, Chords: chords})
         }
     }
 
@@ -185,13 +199,7 @@ func (song Song) HasBeforeComments() bool {
 }
 
 func (line Line) HasChords() bool {
-    for _,l := range line.LineItems {
-        if l.IsChord {
-            return true
-        }
-    }
-
-    return false
+    return len(line.Chords) > 0
 }
 
 func (stanza Stanza) HasChords() bool {
@@ -204,6 +212,29 @@ func (stanza Stanza) HasChords() bool {
     return false
 }
 
-func (line Line) GetText(start int, end int) string {
-    return line.Text[start:end]
+func (line Line) PreChordText(chord Chord) string {
+    //first, find the chord
+    ind := -1
+    for i,ch := range line.Chords {
+        if ch == chord {
+            ind = i
+            break
+        }
+    }
+
+    if ind < 0 {
+        return ""
+    }
+
+    //We need the text from the previous chord up to this chord
+    ind--
+
+    //chord is the first chord
+    if ind < 0 {
+        return line.Text[0:chord.Position]
+    }
+
+    pos := line.Chords[ind].Position + len(line.Chords[ind].Text)
+
+    return line.Text[pos:chord.Position]
 }

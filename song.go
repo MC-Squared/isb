@@ -7,6 +7,7 @@ import (
     "bytes"
     "fmt"
     "path/filepath"
+    "regexp"
 )
 
 //Structs used when parsing a song file
@@ -22,7 +23,6 @@ type Song struct {
 
 type Stanza struct {
     ShowNumber bool
-    HasChords bool
     IsChorus bool
     Number int
     BeforeComments []string
@@ -31,14 +31,13 @@ type Stanza struct {
 }
 
 type Line struct {
-    HasChords bool
     Text string
-    Chords []Chord
+    LineItems []LineItem
 }
 
-type Chord struct {
+type LineItem struct {
     Text string
-    Position int
+    IsChord bool
 }
 
 func ParseSongFile(filename string) (*Song, error) {
@@ -62,6 +61,8 @@ func ParseSongFile(filename string) (*Song, error) {
     stanza_after_comments := make([]string, 0)
     song_before_comments := make([]string, 0)
     //song_after_comments := make([]string, 0)
+    //
+    chord_regex := regexp.MustCompile("\\[.*?\\]")
     
     for scanner.Scan() {
         line := scanner.Text()
@@ -108,7 +109,23 @@ func ParseSongFile(filename string) (*Song, error) {
                 }
             }
         } else {
-            lines = append(lines, *&Line{HasChords: false, Text: line})
+            chords_pos := chord_regex.FindAllStringIndex(line, -1)
+            line_items := make([]LineItem, 0)
+            last_text_pos := 0
+
+            for _, pos := range chords_pos {
+                chord_text := line[pos[0]+1:pos[1]-1]
+                //position := pos[0] - (ind * 2)
+
+                line_items = append(line_items, LineItem{Text:line[last_text_pos:pos[0]], IsChord: false})
+                last_text_pos = pos[1]
+
+                line_items = append(line_items, LineItem{Text: chord_text, IsChord: true})
+            }
+
+            //remove all chord markers
+            line = chord_regex.ReplaceAllString(line, "")
+            lines = append(lines, Line{Text: line, LineItems: line_items})
         }
     }
 
@@ -165,4 +182,28 @@ func (song Song) String() string {
 
 func (song Song) HasBeforeComments() bool {
     return len(song.BeforeComments) > 0
+}
+
+func (line Line) HasChords() bool {
+    for _,l := range line.LineItems {
+        if l.IsChord {
+            return true
+        }
+    }
+
+    return false
+}
+
+func (stanza Stanza) HasChords() bool {
+    for _,l := range stanza.Lines {
+        if l.HasChords() {
+            return true
+        }
+    }
+
+    return false
+}
+
+func (line Line) GetText(start int, end int) string {
+    return line.Text[start:end]
 }

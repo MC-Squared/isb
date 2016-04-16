@@ -7,6 +7,10 @@
         .chorus {
             margin-left: 10mm;
         }
+
+        .hidden {
+            visibility: hidden;
+        }
     </style>
 {{ end }}
 
@@ -27,7 +31,22 @@
         {{ range .BeforeComments }}
             <i>{{ . }}</i><br>
         {{ end }}
-        {{ range .Lines }}
+
+        {{ $print_chords := .HasChords }}
+        
+        {{ range $line := .Lines }}
+            {{ $last_chord_pos := 0 }}
+
+            {{ if $print_chords }}
+                {{ range .LineItems }}
+                    {{- if .IsChord -}}
+                        {{- .Text -}}
+                    {{- else -}}
+                    <span class='hidden'>{{- .Text -}}</span>
+                    {{- end -}}
+                {{ end }}
+                <br>
+            {{ end }}
             {{ .Text }}<br>
         {{ end }}
         <br>

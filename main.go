@@ -46,6 +46,7 @@ func main() {
 
     http.HandleFunc("/", indexHandler)
     http.HandleFunc("/song/", songHandler)
+    http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
     log.Fatal(http.ListenAndServe("localhost:8090", nil))
 }
 
@@ -57,25 +58,24 @@ var indexTemplate = template.Must(template.ParseFiles("templates/index.tmpl"))
 // Index is a data structure used to populate an indexTemplate.
 type Index struct {
     Title string
-    Body  string
-    Links []Link
     Songs []string
 }
 
-type Link struct {
-    URL, Title string
-}
+type SongPage struct {
+    Title string
+    Songs []string
+    Song Song
+    HasSong bool
+}   
 
 // indexHandler is an HTTP handler that serves the index page.
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-    data := &Index{
-        Title: "Image gallery",
-        Body:  "Welcome to the image gallery.",
-    }
+    data := &SongPage{
+        Title: "Indigo Song Book",
+        HasSong: false,
+        Songs: filenames}
 
-    data.Songs = filenames
-
-    if err := indexTemplate.Execute(w, data); err != nil {
+    if err := songTemplate.Execute(w, data); err != nil {
         log.Println(err)
     }
 }
@@ -118,7 +118,13 @@ func songHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    if err := songTemplate.Execute(w, data); err != nil {
+    page_data := &SongPage{
+        Title: "Indigo Song Book",
+        Song: *data,
+        HasSong: true,
+        Songs: filenames}
+
+    if err := songTemplate.Execute(w, page_data); err != nil {
         log.Println(err)
     }
 }

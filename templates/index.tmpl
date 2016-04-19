@@ -3,55 +3,18 @@
     <head>
         <meta charset="utf-8">
         <title>{{.Title}}</title>
-        <style>
-            body {
-                font-family: sans-serif;
-            }
-            h1 {
-                background: #ddd;
-            }
-            #sidebar {
-                float: right;
-            }
-        </style>
+        <link rel="stylesheet" type="text/css" href="/css/style.css">
+        <script src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
+
         {{ block "head" .}}
         {{ end }}
     </head>
     <body>
-        <h1>{{.Title}}</h1>
-
-        <div id="sidebar">
-            {{block "sidebar" .}}
-            <h2>Links</h2>
-            {{/* The dashes in the following template directives
-                 ensure the generated HTML of this list contains no
-                 extraneous spaces or line breaks. */}}
-            <ul>
-                {{- range .Links}}
-                <li><a href="{{.URL}}">{{.Title}}</a></li>
-                {{- end}}
-            </ul>
-            {{end}}
+        <div class='wrapper'>
+            <div id="content">
+                {{block "content" .}}
+                {{end}}
+            </div>
         </div>
-
-        {{block "content" .}}
-        <div id="content">
-            <!-- Select a song -->
-            <select class='select-style' id='choose_song' name='choose_song'>
-                <option value="Select A Song">Select A Song</option>
-                {{ range .Songs }}
-                    <option value="{{ . }}">{{ . }}</option>
-                {{ end }}
-            </select>
-
-            <ul>
-                {{ range .Songs }}
-                    <li><a href='/song/{{ . }}'>{{ . }}</a></li>
-                {{ end }}
-            </ul>
-            {{.Body}}
-            
-        </div>
-        {{end}}
     </body>
 </html>

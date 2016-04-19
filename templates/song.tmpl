@@ -1,4 +1,4 @@
-{{ define "head" }}
+{{ block "head" .}}
     <style>
         .body {
             color: #332200;
@@ -25,48 +25,75 @@
             visibility: hidden;
         }
     </style>
+
+    <script>
+        $(document).ready(function() {
+            $('#choose-song').change(function() {
+                window.location.href = '/song/' + $('#choose-song').val();
+            });
+        });
+    </script>
 {{ end }}
 
-{{ define "content" }}
-    <span class='section'>{{ .Section }}</span><br>
+{{ block "search-title" .}}
+    
+{{end}}
 
-    {{ range .BeforeComments }}
-        <span class='comment'>{{ . }}</span><br>
+{{ block "content" .}}
+    {{ if .HasSong }}
+        <a href='/'><h3 class='title'>Home</h3></a>
+    {{ else }}
+        <h1 class='title'>{{ .Title }}</h1>
     {{ end }}
-    {{ if .HasBeforeComments }}
+    
+    <!-- Select a song -->
+    <div id='song-select-div'>
+        <select class='select-style' id='choose-song' name='choose_song'>
+            <option value="Select A Song">Select A Song</option>
+            {{ range .Songs }}
+                <option value="{{ . }}">{{ . }}</option>
+            {{ end }}
+        </select>
+    </div>
+    {{ with .Song }}
         <br>
-    {{ end }}
-
-    {{ range .Stanzas }}
-        {{ if .IsChorus }}
-            <div class='chorus'>
-        {{ end }}
+        <h1 class='title'>{{ .Title }}</h1>
+        <span class='section'>{{ .Section }}</span><br>
 
         {{ range .BeforeComments }}
-            <i>{{ . }}</i><br>
+            <span class='comment'>{{ . }}</span><br>
+        {{ end }}
+        {{ if .HasBeforeComments }}
+            <br>
         {{ end }}
 
-        {{ $print_chords := .HasChords }}
-        
-        {{ range $line := .Lines }}
-            {{ if $print_chords }}
-                {{ range $chord := .Chords }}
-                    <span class='hidden'>
-                        {{- $line.PreChordText $chord -}}
-                    </span><span class='chord'>{{- .Text -}}</span>
-                {{ end }}
-                <br>
+        {{ range .Stanzas }}
+            {{ if .IsChorus }}
+                <div class='chorus'>
             {{ end }}
-            {{ .Text }}<br>
-        {{ end }}
-        <br>
 
-        {{ if .IsChorus }}
-            </div>
+            {{ range .BeforeComments }}
+                <i>{{ . }}</i><br>
+            {{ end }}
+
+            {{ $print_chords := .HasChords }}
+            
+            {{ range $line := .Lines }}
+                {{ if $print_chords }}
+                    {{ range $chord := .Chords }}
+                        <span class='hidden'>
+                            {{- $line.PreChordText $chord -}}
+                        </span><span class='chord'>{{- .Text -}}</span>
+                    {{ end }}
+                    <br>
+                {{ end }}
+                {{ .Text }}<br>
+            {{ end }}
+            <br>
+
+            {{ if .IsChorus }}
+                </div>
+            {{ end }}
         {{ end }}
     {{ end }}
-{{ end }}
-
-{{ define "sidebar" }}
-    <a href="/">Back</a>
 {{ end }}

@@ -32,13 +32,7 @@ type Stanza struct {
 
 type Line struct {
     Text string
-    LineItems []LineItem
     Chords []Chord
-}
-
-type LineItem struct {
-    Text string
-    IsChord bool
 }
 
 type Chord struct {
@@ -116,30 +110,20 @@ func ParseSongFile(filename string) (*Song, error) {
             }
         } else {
             chords_pos := chord_regex.FindAllStringIndex(line, -1)
-            line_items := make([]LineItem, 0)
-            last_text_pos := 0
-
             chord_len := 0
-
             chords := make([]Chord, 0)
 
             for _, pos := range chords_pos {
                 chord_text := line[pos[0]+1:pos[1]-1]
                 chord_len += pos[1] - pos[0]
                 position := pos[1] - chord_len
-                //position := pos[0] - (ind * 2)
 
                 chords = append(chords, Chord{Text: chord_text, Position: position})
-
-                line_items = append(line_items, LineItem{Text:line[last_text_pos:pos[0]], IsChord: false})
-                last_text_pos = pos[1]
-
-                line_items = append(line_items, LineItem{Text: chord_text, IsChord: true})
             }
 
             //remove all chord markers
             line = chord_regex.ReplaceAllString(line, "")
-            lines = append(lines, Line{Text: line, LineItems: line_items, Chords: chords})
+            lines = append(lines, Line{Text: line, Chords: chords})
         }
     }
 

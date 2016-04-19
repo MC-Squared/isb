@@ -57,6 +57,37 @@ func ParseSongFile(filename string) (*Song, error) {
         scanner = bufio.NewScanner(file)
     )
 
+    //We need to handle /r only as Mac OS <= 9 uses this as end-of-line marker
+    //This is based on bufio/scan.go ScanLines function
+    split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+        if atEOF && len(data) == 0 {
+            return 0, nil, nil
+        }
+        i := bytes.IndexByte(data, '\n');
+
+        if i < 0 {
+            i = bytes.IndexByte(data, '\r');
+        }
+
+        ind := 0
+        if i > 0 && data[i-1] == '\r' {
+            ind = -1
+        }
+
+        if i >= 0 {
+
+            // We have a full newline-terminated line.
+            return i + 1, data[0:i + ind], nil
+        }
+        // If we're at EOF, we have a final, non-terminated line. Return it.
+        if atEOF {
+            return len(data), data[0:len(data)+ind], nil
+        }
+        // Request more data.
+        return 0, nil, nil
+    }
+    scanner.Split(split)
+
     stanza_before_comments := make([]string, 0)
     stanza_after_comments := make([]string, 0)
     song_before_comments := make([]string, 0)

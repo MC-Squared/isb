@@ -55,44 +55,54 @@
             {{ end }}
         </select>
     </div>
-    {{ with .Song }}
-        <br>
-        <h1 class='title'>{{ .Title }}</h1>
-        <span class='section'>{{ .Section }}</span><br>
-
-        {{ range .BeforeComments }}
-            <span class='comment'>{{ . }}</span><br>
-        {{ end }}
-        {{ if .HasBeforeComments }}
-            <br>
-        {{ end }}
-
-        {{ range .Stanzas }}
-            {{ if .IsChorus }}
-                <div class='chorus'>
-            {{ end }}
+    {{ if .HasSong }}
+        {{ with .Song }}
+            <form action=''>
+                <input class='button' type='submit' value='Capo'>
+                <input 
+                    type='text' 
+                    name='transpose' 
+                    size='2' 
+                    style='height: 25px; text-align:center;'
+                    value='{{ .Transpose }}'>
+            </form>
+            <h1 class='title'>{{ .Title }}</h1>
+            <span class='section'>{{ .Section }}</span><br>
 
             {{ range .BeforeComments }}
-                <i>{{ . }}</i><br>
+                <span class='comment'>{{ . }}</span><br>
+            {{ end }}
+            {{ if .HasBeforeComments }}
+                <br>
             {{ end }}
 
-            {{ $print_chords := .HasChords }}
-            
-            {{ range $line := .Lines }}
-                {{ if $print_chords }}
-                    {{ range $chord := .Chords }}
-                        <span class='hidden'>
-                            {{- $line.PreChordText $chord -}}
-                        </span><span class='chord'>{{- .Text -}}</span>
-                    {{ end }}
-                    <br>
+            {{ range .Stanzas }}
+                {{ if .IsChorus }}
+                    <div class='chorus'>
                 {{ end }}
-                {{ .Text }}<br>
-            {{ end }}
-            <br>
 
-            {{ if .IsChorus }}
-                </div>
+                {{ range .BeforeComments }}
+                    <i>{{ . }}</i><br>
+                {{ end }}
+
+                {{ $print_chords := .HasChords }}
+                
+                {{ range $line := .Lines }}
+                    {{ if $print_chords }}
+                        {{ range $chord := .Chords }}
+                            <span class='hidden'>
+                                {{- $line.PreChordText $chord -}}
+                            </span><span class='chord'>{{- .Text -}}</span>
+                        {{ end }}
+                        <br>
+                    {{ end }}
+                    {{ .Text }}<br>
+                {{ end }}
+                <br>
+
+                {{ if .IsChorus }}
+                    </div>
+                {{ end }}
             {{ end }}
         {{ end }}
     {{ end }}

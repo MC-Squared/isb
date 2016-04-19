@@ -32,6 +32,7 @@ import (
     "fmt"
     "sort"
     "bufio"
+    "strconv"
 )
 
 func main() {
@@ -39,10 +40,6 @@ func main() {
     filepath.Walk(songs_root, walkpath)
 
     fmt.Printf("%d Songs loaded.\n", len(filenames))
-
-    song,_ := ParseSongFile("songs_master/Abba, Father.song");
-
-    fmt.Println(song)
 
     http.HandleFunc("/", indexHandler)
     http.HandleFunc("/song/", songHandler)
@@ -90,10 +87,10 @@ type SongFile struct {
     Lines  []string
 }
 
-func loadSongFile(title string) (*Song, error) {
+func loadSongFile(title string, transpose int) (*Song, error) {
     filename := "songs_master/" + title + ".song"
 
-    song,err := ParseSongFile(filename);
+    song,err := ParseSongFile(filename, transpose);
 
     if err != nil {
         return nil, err
@@ -112,11 +109,19 @@ func songHandler(w http.ResponseWriter, r *http.Request) {
         return        
     }
 
-    data, err := loadSongFile(target)
+    var transpose = r.FormValue("transpose")
+    if len(transpose) == 0 {
+        transpose = "0";
+    }
+    t, err := strconv.Atoi(transpose)
+
+    data, err := loadSongFile(target, t)
     if err != nil {
         log.Println(err)
         return
     }
+
+
 
     page_data := &SongPage{
         Title: "Indigo Song Book",

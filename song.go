@@ -19,6 +19,7 @@ type Song struct {
     Stanzas []Stanza
     BeforeComments []string
     AfterComments []string
+    Transpose int
 }
 
 type Stanza struct {
@@ -40,7 +41,7 @@ type Chord struct {
     Position int
 }
 
-func ParseSongFile(filename string) (*Song, error) {
+func ParseSongFile(filename string, transpose int) (*Song, error) {
     file, err := os.Open(filename)
     if err != nil {
         return nil, err
@@ -149,6 +150,8 @@ func ParseSongFile(filename string) (*Song, error) {
                 chord_len += pos[1] - pos[0]
                 position := pos[1] - chord_len
 
+                chord_text = transposeKey(chord_text, transpose)
+
                 chords = append(chords, Chord{Text: chord_text, Position: position})
             }
 
@@ -172,7 +175,8 @@ func ParseSongFile(filename string) (*Song, error) {
         StanzaCount: 0,
         SongNumber: -1,
         Stanzas: stanzas,
-        BeforeComments: song_before_comments},
+        BeforeComments: song_before_comments,
+        Transpose: transpose},
         nil
 }
 
@@ -252,4 +256,57 @@ func (line Line) PreChordText(chord Chord) string {
     pos := line.Chords[ind].Position + len(line.Chords[ind].Text)
 
     return line.Text[pos:chord.Position]
+}
+
+
+var scales = map[string]int{
+    "A": 0,
+    "Bb": 1,
+    "B": 2,
+    "C": 3,
+    "C#": 4,
+    "D": 5,
+    "D#": 6,
+    "E": 7,
+    "F": 8,
+    "F#": 9,
+    "G": 10,
+    "G#": 11,
+}
+
+func transposeKey(key string, change int) string {
+    if change == 0 {
+        return key
+    }
+
+    //check first two letters for match
+    var scale_ind = -1
+    var ok = false
+    if len(key) > 1 {
+        scale_ind, ok = scales[key[0:2]]
+        if !ok {
+            scale_ind = -1
+        }
+    }
+
+    //check for single key match
+    if scale_ind < 0 && len(key) > 0 {
+        scale_ind, ok = scales[key[0:1]]
+        if !ok {
+            scale_ind = -1
+        }
+    }
+
+    if scale_ind < 0 {
+        return key
+    }
+
+    scale_ind = (scale_ind + change) % (len(scales))
+    for k := range scales {
+        if scales[k] == scale_ind {
+            return k
+        }
+    }
+
+    return key
 }

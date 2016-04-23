@@ -1,19 +1,27 @@
 package main
 
 import (
-    "github.com/jung-kurt/gofpdf"
-    "log"
+	"log"
+	"strconv"
+
+	"github.com/jung-kurt/gofpdf"
 )
 
 type PDFFont struct {
-    Family string
-    Style string
-    Size float64
+	Family string
+	Style  string
+	Size   float64
 }
 
-var stanzaFont = PDFFont{"Times", "", 12}
-var chordFont = PDFFont{"Helvetica", "B", 10}
-var commentFont = PDFFont{"Times", "I", 10}
+var (
+	stanzaFont  = PDFFont{"Times", "", 24}
+	chordFont   = PDFFont{"Helvetica", "B", stanzaFont.Size * 0.85}
+	commentFont = PDFFont{"Times", "I", chordFont.Size}
+)
+
+var stanzaIndent = stanzaFont.Size
+var stanzaNumberIndent = stanzaIndent / 2.0
+var chorusIndent = stanzaIndent * 2.0
 
 //var echoFont = PDFFont{stanzaFont.Family, "", stanzaFont.Size} DARK GREY
 //var songNumberFont = PDFFont{"Helvetica", "B", 15}
@@ -21,91 +29,122 @@ var commentFont = PDFFont{"Times", "I", 10}
 //var tocSectionFont = PDFFont{"Times", "I", 12}
 
 func WriteSongPDF(song *Song) {
-    pdf := gofpdf.New("P", "mm", "A4", "")
-    pdf.AddPage()
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
 
-    stanzaHt := pdf.PointConvert(stanzaFont.Size)
-    chordHt := pdf.PointConvert(chordFont.Size)
-    commentHt := pdf.PointConvert(commentFont.Size)
+	stanzaHt := pdf.PointConvert(stanzaFont.Size)
+	chordHt := pdf.PointConvert(chordFont.Size)
+	commentHt := pdf.PointConvert(commentFont.Size)
 
-    tr := pdf.UnicodeTranslatorFromDescriptor("")
+	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
-    var w float64
-    //Print pre-song comments
-    printComments(
-        pdf,
-        tr,
-        song.BeforeComments,
-        commentFont)
-    pdf.Ln(commentHt);
+	var w float64
+	//Print pre-song comments
+	printComments(
+		pdf,
+		tr,
+		song.BeforeComments,
+		commentFont)
+	pdf.Ln(commentHt)
 
-    for _, stanza := range song.Stanzas {
-        if stanza.IsChorus {
-            pdf.SetLeftMargin(20)
-            pdf.SetX(20)
-        } else {
-            pdf.SetLeftMargin(10)
-            pdf.SetX(10)
-        }
+	for _, stanza := range song.Stanzas {
+		if stanza.IsChorus {
+			pdf.SetLeftMargin(chorusIndent)
+			pdf.SetX(chorusIndent)
+		}
 
-        //Print pre-stanza comments
-        printComments(
-            pdf,
-            tr,
-            stanza.BeforeComments,
-            commentFont)
+		//Print pre-stanza comments
+		printComments(
+			pdf,
+			tr,
+			stanza.BeforeComments,
+			commentFont)
 
-        for _, line := range stanza.Lines {
-            setFont(pdf, chordFont)
-            //blank space before first chord (if any)
-            if line.HasChords() {
-                w = pdf.GetStringWidth(line.PreChordText(line.Chords[0]))
-                if w > 0 {
-                    pdf.Cell(w, chordHt, "")
-                }
-            }
-            for _, chord := range line.Chords {
-                w = pdf.GetStringWidth(chord.Text) + pdf.GetStringWidth(line.PreChordText(chord))
-                pdf.Cell(w, chordHt, tr(chord.Text))
-            }
-            if stanza.HasChords() {
-                pdf.Ln(chordHt)
-            }
+		for ind, line := range stanza.Lines {
+			last_pos := 0
+			last_chord_w := 0.0
+			for _, chord := range line.Chords {
 
-            setFont(pdf, stanzaFont)
-            w = pdf.GetStringWidth(line.Text)
-            pdf.Cell(w, stanzaHt, tr(line.Text))
-            //y += 10
-            pdf.Ln(stanzaHt);
-        }
+				//Put blank padding
+				//to position chords correctly
+				if chord.Position > 0 {
+					setFont(pdf, stanzaFont)
+					w = pdf.GetStringWidth(line.Text[last_pos:chord.Position])
+					w -= last_chord_w
+					pdf.Cell(w, chordHt, "")
+				}
 
-        //print post-stanza comments
-        printComments(
-            pdf,
-            tr,
-            stanza.AfterComments,
-            commentFont)
-        pdf.Ln(stanzaHt);
-    }
+				setFont(pdf, chordFont)
+				w = pdf.GetStringWidth((chord.Text))
+				pdf.Cell(w, chordHt, tr(chord.Text))
 
-    err := pdf.OutputFileAndClose("hello.pdf")
+				last_chord_w = w
+				last_pos = chord.Position
 
-    if err != nil {
-        log.Println(err)
-    }
+			}
+			if stanza.HasChords() {
+				pdf.Ln(chordHt)
+			}
+
+			setFont(pdf, stanzaFont)
+			//Print stanza number on the first line
+			if ind == 0 && stanza.ShowNumber && !stanza.IsChorus {
+				num := strconv.Itoa(stanza.Number)
+				pdf.SetX(stanzaNumberIndent)
+				pdf.Cell(stanzaNumberIndent, stanzaHt, tr(num))
+			}
+
+			w = pdf.GetStringWidth(line.Text)
+			pdf.Cell(w, stanzaHt, tr(line.Text))
+			pdf.Ln(stanzaHt)
+		}
+
+		//print post-stanza comments
+		printComments(
+			pdf,
+			tr,
+			stanza.AfterComments,
+			commentFont)
+		pdf.Ln(stanzaHt)
+
+		pdf.SetLeftMargin(stanzaIndent)
+		pdf.SetX(stanzaIndent)
+	}
+
+	//Print post-song comments
+	printComments(
+		pdf,
+		tr,
+		song.AfterComments,
+		commentFont)
+	pdf.Ln(commentHt)
+
+	err := pdf.OutputFileAndClose("hello.pdf")
+
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func setFont(pdf *gofpdf.Fpdf, font PDFFont) {
-    pdf.SetFont(font.Family, font.Style, font.Size)
+	pdf.SetFont(font.Family, font.Style, font.Size)
+}
+
+func print(pdf *gofpdf.Fpdf, tr func(string) string, str string, font PDFFont) {
+	setFont(pdf, font)
+
+	ht := pdf.PointConvert(font.Size)
+	w := pdf.GetStringWidth(str)
+	pdf.Cell(w, ht, tr(str))
 }
 
 func printComments(pdf *gofpdf.Fpdf, tr func(string) string, comments []string, font PDFFont) {
-    commentHt := pdf.PointConvert(font.Size)
-    setFont(pdf, font)
-    
-    for _, comment := range comments {
-        w := pdf.GetStringWidth(comment)
-        pdf.Cell(w, commentHt, tr(comment))
-        pdf.Ln(commentHt);
-    }
+	commentHt := pdf.PointConvert(font.Size)
+	setFont(pdf, font)
+
+	for _, comment := range comments {
+		w := pdf.GetStringWidth(comment)
+		pdf.Cell(w, commentHt, tr(comment))
+		pdf.Ln(commentHt)
+	}
 }

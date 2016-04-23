@@ -23,28 +23,28 @@ limitations under the License.
 package main
 
 import (
-    "html/template"
-    "log"
-    "net/http"
-    "strings"
-    "path/filepath"
-    "os"
-    "fmt"
-    "sort"
-    "bufio"
-    "strconv"
+	"bufio"
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 func main() {
-    songs_root := "./songs_master" // 1st argument is the directory location
-    filepath.Walk(songs_root, walkpath)
+	songs_root := "./songs_master" // 1st argument is the directory location
+	filepath.Walk(songs_root, walkpath)
 
-    fmt.Printf("%d Songs loaded.\n", len(filenames))
+	fmt.Printf("%d Songs loaded.\n", len(filenames))
 
-    http.HandleFunc("/", indexHandler)
-    http.HandleFunc("/song/", songHandler)
-    http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
-    log.Fatal(http.ListenAndServe("localhost:8090", nil))
+	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/song/", songHandler)
+	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
+	log.Fatal(http.ListenAndServe("localhost:8090", nil))
 }
 
 // indexTemplate is the main site template.
@@ -54,27 +54,27 @@ var indexTemplate = template.Must(template.ParseFiles("templates/index.tmpl"))
 
 // Index is a data structure used to populate an indexTemplate.
 type Index struct {
-    Title string
-    Songs []string
+	Title string
+	Songs []string
 }
 
 type SongPage struct {
-    Title string
-    Songs []string
-    Song Song
-    HasSong bool
-}   
+	Title   string
+	Songs   []string
+	Song    Song
+	HasSong bool
+}
 
 // indexHandler is an HTTP handler that serves the index page.
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-    data := &SongPage{
-        Title: "Indigo Song Book",
-        HasSong: false,
-        Songs: filenames}
+	data := &SongPage{
+		Title:   "Indigo Song Book",
+		HasSong: false,
+		Songs:   filenames}
 
-    if err := songTemplate.Execute(w, data); err != nil {
-        log.Println(err)
-    }
+	if err := songTemplate.Execute(w, data); err != nil {
+		log.Println(err)
+	}
 }
 
 // imageTemplate is a clone of indexTemplate that provides
@@ -83,87 +83,84 @@ var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles
 
 // Image is a data structure used to populate an imageTemplate.
 type SongFile struct {
-    Title string
-    Lines  []string
+	Title string
+	Lines []string
 }
 
 func loadSongFile(title string, transpose int) (*Song, error) {
-    filename := "songs_master/" + title + ".song"
+	filename := "songs_master/" + title + ".song"
 
-    song,err := ParseSongFile(filename, transpose);
+	song, err := ParseSongFile(filename, transpose)
 
-    if err != nil {
-        return nil, err
-    }
-    
-    return song, nil
+	if err != nil {
+		return nil, err
+	}
+
+	return song, nil
 }
 
 // imageHandler is an HTTP handler that serves the image pages.
 func songHandler(w http.ResponseWriter, r *http.Request) {
-    target := strings.TrimPrefix(r.URL.Path, "/song/")
+	target := strings.TrimPrefix(r.URL.Path, "/song/")
 
-    ind := sort.SearchStrings(filenames, target)
-    if ind > len(filenames) && filenames[ind] != target {
-        http.NotFound(w, r)
-        return        
-    }
+	ind := sort.SearchStrings(filenames, target)
+	if ind > len(filenames) && filenames[ind] != target {
+		http.NotFound(w, r)
+		return
+	}
 
-    var transpose = r.FormValue("transpose")
-    if len(transpose) == 0 {
-        transpose = "0";
-    }
-    t, err := strconv.Atoi(transpose)
+	var transpose = r.FormValue("transpose")
+	if len(transpose) == 0 {
+		transpose = "0"
+	}
+	t, err := strconv.Atoi(transpose)
 
-    data, err := loadSongFile(target, t)
-    if err != nil {
-        log.Println(err)
-        return
-    }
+	data, err := loadSongFile(target, t)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
+	page_data := &SongPage{
+		Title:   "Indigo Song Book",
+		Song:    *data,
+		HasSong: true,
+		Songs:   filenames}
 
-
-    page_data := &SongPage{
-        Title: "Indigo Song Book",
-        Song: *data,
-        HasSong: true,
-        Songs: filenames}
-
-    if err := songTemplate.Execute(w, page_data); err != nil {
-        log.Println(err)
-    }
+	if err := songTemplate.Execute(w, page_data); err != nil {
+		log.Println(err)
+	}
 }
 
 var filenames = make([]string, 0)
 
 func walkpath(path string, f os.FileInfo, err error) error {
-    if (f.IsDir() && f.Name() != "songs_master") {
-        return filepath.SkipDir
-    } else if (f.IsDir()) {
-        return nil
-    }
+	if f.IsDir() && f.Name() != "songs_master" {
+		return filepath.SkipDir
+	} else if f.IsDir() {
+		return nil
+	}
 
-    file := f.Name()[0:len(f.Name())-5]
-    filenames = append(filenames, file)
+	file := f.Name()[0 : len(f.Name())-5]
+	filenames = append(filenames, file)
 
-    fmt.Printf("%s\n", file)
-    return nil
+	fmt.Printf("%s\n", file)
+	return nil
 }
-
 
 // readLines reads a whole file into memory
 // and returns a slice of its lines.
 func readLines(path string) ([]string, error) {
-  file, err := os.Open(path)
-  if err != nil {
-    return nil, err
-  }
-  defer file.Close()
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-  var lines []string
-  scanner := bufio.NewScanner(file)
-  for scanner.Scan() {
-    lines = append(lines, scanner.Text())
-  }
-  return lines, scanner.Err()
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }

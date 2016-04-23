@@ -29,6 +29,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -43,6 +44,7 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/song/", songHandler)
+	http.HandleFunc("/pdf/", pdfHandler)
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
 	log.Fatal(http.ListenAndServe("localhost:8090", nil))
 }
@@ -99,7 +101,6 @@ func loadSongFile(title string, transpose int) (*Song, error) {
 	return song, nil
 }
 
-// imageHandler is an HTTP handler that serves the image pages.
 func songHandler(w http.ResponseWriter, r *http.Request) {
 	target := strings.TrimPrefix(r.URL.Path, "/song/")
 
@@ -132,6 +133,44 @@ func songHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func pdfHandler(w http.ResponseWriter, r *http.Request) {
+	target := path.Base(r.URL.Path)
+
+	ind := sort.SearchStrings(filenames, target)
+	if ind > len(filenames) && filenames[ind] != target {
+		http.NotFound(w, r)
+		return
+	}
+
+	var transpose = r.FormValue("transpose")
+	if len(transpose) == 0 {
+		transpose = "0"
+	}
+	t, err := strconv.Atoi(transpose)
+
+	song, err := loadSongFile(target, t)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	pdf, err := WriteSongPDF(song)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// stream straight to client(browser)
+	w.Header().Set("Content-type", "application/pdf")
+
+	if _, err := pdf.WriteTo(w); err != nil {
+		fmt.Fprintf(w, "%s", err)
+	}
+
+	w.Write([]byte("PDF Generated"))
+}
+
 var filenames = make([]string, 0)
 
 func walkpath(path string, f os.FileInfo, err error) error {
@@ -144,7 +183,6 @@ func walkpath(path string, f os.FileInfo, err error) error {
 	file := f.Name()[0 : len(f.Name())-5]
 	filenames = append(filenames, file)
 
-	fmt.Printf("%s\n", file)
 	return nil
 }
 

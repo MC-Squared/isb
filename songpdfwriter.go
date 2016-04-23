@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"strconv"
 
@@ -14,10 +15,10 @@ type PDFFont struct {
 }
 
 var (
-	stanzaFont  = PDFFont{"Times", "", 12}
+	stanzaFont  = PDFFont{"Times", "", 18}
 	chordFont   = PDFFont{"Helvetica", "B", stanzaFont.Size * 0.85}
 	commentFont = PDFFont{"Times", "I", chordFont.Size}
-	titleFont   = PDFFont{"Helvetica", "B", stanzaFont.Size * 2}
+	titleFont   = PDFFont{"Helvetica", "B", stanzaFont.Size * 1.5}
 	sectionFont = commentFont
 )
 
@@ -30,7 +31,7 @@ var chorusIndent = stanzaIndent * 2.0
 //var tocFont = PDFFont{"Times", "", 12}
 //var tocSectionFont = PDFFont{"Times", "I", 12}
 
-func WriteSongPDF(song *Song) {
+func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
@@ -137,11 +138,14 @@ func WriteSongPDF(song *Song) {
 		song.AfterComments,
 		commentFont)
 
-	err := pdf.OutputFileAndClose("hello.pdf")
+	buf := new(bytes.Buffer)
+	err := pdf.Output(buf)
 
 	if err != nil {
 		log.Println(err)
 	}
+
+	return buf, nil
 }
 
 func setFont(pdf *gofpdf.Fpdf, font PDFFont) {

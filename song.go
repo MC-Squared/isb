@@ -12,6 +12,7 @@ import (
 
 //Structs used when parsing a song file
 type Song struct {
+	Filename       string
 	Title          string
 	Section        string
 	StanzaCount    int
@@ -157,6 +158,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	}
 
 	return &Song{
+			Filename:       filename,
 			Title:          title,
 			Section:        section,
 			StanzaCount:    0,
@@ -203,4 +205,8 @@ func (song Song) String() string {
 
 func (song Song) HasBeforeComments() bool {
 	return len(song.BeforeComments) > 0
+}
+
+func (song Song) Link() string {
+	return song.Filename[0 : len(song.Filename)-5]
 }

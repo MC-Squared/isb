@@ -32,13 +32,17 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	defer file.Close()
 
 	var (
-		lines        []Line
-		stanzas      []Stanza
-		stanza_count = 1
-		is_chorus    = false
-		title        = filepath.Base(filename)[0 : len(filepath.Base(filename))-5]
-		section      = ""
-		scanner      = bufio.NewScanner(file)
+		//Song variables
+		stanzas         []Stanza
+		stanza_count    = 1
+		title           = filepath.Base(filename)[0 : len(filepath.Base(filename))-5]
+		section         = ""
+		scanner         = bufio.NewScanner(file)
+		song_stanza_num = true
+		//Stanza variables
+		lines           []Line
+		is_chorus       = false
+		stanza_show_num = true
 	)
 
 	//We need to handle /r only as Mac OS <= 9 uses this as end-of-line marker
@@ -104,9 +108,13 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 					}
 				}
 			} else if strings.HasPrefix(line, "{no_number") {
-				if len(stanzas) == 0 {
-
+				if !song_started {
+					song_stanza_num = false
+				} else {
+					stanza_show_num = false
 				}
+			} else {
+				fmt.Printf("Unknown tag: %s\n", line)
 			}
 			//blank line separates stanzas
 		} else if len(line) == 0 {
@@ -117,7 +125,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 					Lines:          lines,
 					Number:         stanza_count,
 					IsChorus:       is_chorus,
-					ShowNumber:     true,
+					ShowNumber:     stanza_show_num,
 					BeforeComments: stanza_before_comments,
 					AfterComments:  stanza_after_comments})
 
@@ -127,6 +135,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 				}
 
 				is_chorus = false
+				stanza_show_num = true
 				lines = make([]Line, 0)
 				stanza_before_comments = make([]string, 0)
 				stanza_after_comments = make([]string, 0)
@@ -158,7 +167,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 			Lines:          lines,
 			Number:         stanza_count,
 			IsChorus:       is_chorus,
-			ShowNumber:     true,
+			ShowNumber:     stanza_show_num,
 			BeforeComments: stanza_before_comments,
 			AfterComments:  stanza_after_comments})
 	} else if len(stanza_before_comments) > 0 {
@@ -166,15 +175,16 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	}
 
 	return &Song{
-			Filename:       filename,
-			Title:          title,
-			Section:        section,
-			StanzaCount:    0,
-			SongNumber:     -1,
-			Stanzas:        stanzas,
-			BeforeComments: song_before_comments,
-			AfterComments:  song_after_comments,
-			Transpose:      transpose},
+			Filename:          filename,
+			Title:             title,
+			Section:           section,
+			StanzaCount:       0,
+			SongNumber:        -1,
+			ShowStanzaNumbers: song_stanza_num,
+			Stanzas:           stanzas,
+			BeforeComments:    song_before_comments,
+			AfterComments:     song_after_comments,
+			Transpose:         transpose},
 		nil
 }
 

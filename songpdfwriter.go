@@ -108,10 +108,14 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 
 			setFont(pdf, stanzaFont)
 			//Print stanza number on the first line
-			if ind == 0 && stanza.ShowNumber && !stanza.IsChorus {
+			if song.ShowStanzaNumbers &&
+				ind == 0 &&
+				stanza.ShowNumber &&
+				!stanza.IsChorus {
+
 				num := strconv.Itoa(stanza.Number)
 				pdf.SetX(stanzaNumberIndent)
-				pdf.Cell(stanzaNumberIndent, stanzaHt, tr(num))
+				pdf.Cell(stanzaIndent-stanzaNumberIndent, stanzaHt, tr(num))
 			}
 
 			w = pdf.GetStringWidth(line.Text)

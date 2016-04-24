@@ -7,9 +7,9 @@ html{
 }
 
 .wrapper {
-    width: 26em;
+    width: 360px;
     margin: 1em auto;
-    padding: 1.5em 2em; /*the second one is horizontal padding*/
+    padding: 10px 10px; /*the second one is horizontal padding*/
     display: block;
     background-color: white;
 

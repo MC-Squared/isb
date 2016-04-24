@@ -2,27 +2,6 @@
     <script src="/js/select2.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/css/select2.min.css">
     <style>
-        .body {
-            color: #332200;
-        }
-
-        .comment {
-            color: #AAAAAA;
-        }
-
-        .section {
-            color: #77AACC;
-        }
-
-        .chorus {
-            margin-left: 10mm;
-            color: #435400;
-        }
-
-        .chord {
-            color: #0005AA;
-        }
-
         .echo {
             color: grey;
         }
@@ -38,7 +17,7 @@
                 window.location.href = '/song/' + $('#choose-song').val();
             });
 
-            $('#choose-song').select2();
+            $('#choose-song').select2({width: 'resolve'});
         });
     </script>
 {{ end }}

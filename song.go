@@ -12,15 +12,16 @@ import (
 
 //Structs used when parsing a song file
 type Song struct {
-	Filename       string
-	Title          string
-	Section        string
-	StanzaCount    int
-	SongNumber     int
-	Stanzas        []Stanza
-	BeforeComments []string
-	AfterComments  []string
-	Transpose      int
+	Filename          string
+	Title             string
+	Section           string
+	StanzaCount       int
+	SongNumber        int
+	Stanzas           []Stanza
+	ShowStanzaNumbers bool
+	BeforeComments    []string
+	AfterComments     []string
+	Transpose         int
 }
 
 func ParseSongFile(filename string, transpose int) (*Song, error) {
@@ -77,6 +78,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	song_after_comments := make([]string, 0)
 
 	chord_regex := regexp.MustCompile("\\[.*?\\]")
+	song_started := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -92,7 +94,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 			} else if strings.HasPrefix(line, "{section:") {
 				section = parseCommand(line)
 			} else if strings.HasPrefix(line, "{comments:") {
-				if len(stanzas) == 0 && !is_chorus {
+				if !song_started {
 					song_before_comments = append(song_before_comments, parseCommand(line))
 				} else {
 					if len(lines) > 0 {
@@ -101,9 +103,15 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 						stanza_before_comments = append(stanza_before_comments, parseCommand(line))
 					}
 				}
+			} else if strings.HasPrefix(line, "{no_number") {
+				if len(stanzas) == 0 {
+
+				}
 			}
 			//blank line separates stanzas
 		} else if len(line) == 0 {
+			song_started = true
+
 			if len(lines) > 0 {
 				stanzas = append(stanzas, *&Stanza{
 					Lines:          lines,

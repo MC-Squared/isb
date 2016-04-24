@@ -85,7 +85,7 @@
                 {{ end }}
 
                 {{ range .BeforeComments }}
-                    <i>{{ . }}</i><br>
+                    <span class='comment'>{{ . }}</span><br>
                 {{ end }}
 
                 {{ $print_chords := .HasChords }}
@@ -101,11 +101,17 @@
                     {{ end }}
                     {{ .Text }}<br>
                 {{ end }}
+                {{ range .AfterComments }}
+                    <span class='comment'>{{ . }}</span><br>
+                {{ end }}
                 <br>
 
                 {{ if .IsChorus }}
                     </div>
                 {{ end }}
+            {{ end }}
+            {{ range .AfterComments }}
+                <span class='comment'>{{ . }}</span><br>
             {{ end }}
         {{ end }}
     {{ end }}

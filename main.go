@@ -46,6 +46,7 @@ func main() {
 	http.HandleFunc("/song/", songHandler)
 	http.HandleFunc("/pdf/", pdfHandler)
 	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
+	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("js"))))
 	log.Fatal(http.ListenAndServe("localhost:8090", nil))
 }
 
@@ -82,12 +83,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 // imageTemplate is a clone of indexTemplate that provides
 // alternate "sidebar" and "content" templates.
 var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/song.tmpl"))
-
-// Image is a data structure used to populate an imageTemplate.
-type SongFile struct {
-	Title string
-	Lines []string
-}
 
 func loadSongFile(title string, transpose int) (*Song, error) {
 	filename := "songs_master/" + title + ".song"

@@ -1,4 +1,6 @@
 {{ block "head" .}}
+    <script src="/js/select2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/select2.min.css">
     <style>
         .body {
             color: #332200;
@@ -35,6 +37,8 @@
             $('#choose-song').change(function() {
                 window.location.href = '/song/' + $('#choose-song').val();
             });
+
+            $('#choose-song').select2();
         });
     </script>
 {{ end }}

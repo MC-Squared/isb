@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -121,8 +122,26 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 				pdf.Cell(stanzaIndent-stanzaNumberIndent, stanzaHt, tr(num))
 			}
 
-			w = pdf.GetStringWidth(line.Text)
-			pdf.Cell(w, stanzaHt, tr(line.Text))
+			pdf.SetX(stanzaIndent)
+			//Do we need to print an echo portion?
+			if line.HasEcho() {
+				if line.EchoIndex > 0 {
+					str := line.Text[0:line.EchoIndex]
+					w = pdf.GetStringWidth(str)
+					pdf.Cell(w, stanzaHt, tr(str))
+				}
+
+				pdf.SetTextColor(128, 128, 128)
+				str := line.Text[line.EchoIndex:len(line.Text)]
+
+				fmt.Println(str)
+				w = pdf.GetStringWidth(str)
+				pdf.Cell(w, stanzaHt, tr(str))
+				pdf.SetTextColor(0, 0, 0)
+			} else {
+				w = pdf.GetStringWidth(line.Text)
+				pdf.Cell(w, stanzaHt, tr(line.Text))
+			}
 			pdf.Ln(stanzaHt)
 		}
 

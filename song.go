@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -35,7 +34,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 		//Song variables
 		stanzas         []Stanza
 		stanza_count    = 1
-		title           = filepath.Base(filename)[0 : len(filepath.Base(filename))-5]
+		title           = ""
 		section         = ""
 		scanner         = bufio.NewScanner(file)
 		song_stanza_num = true
@@ -82,22 +81,28 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	song_after_comments := make([]string, 0)
 
 	chord_regex := regexp.MustCompile("\\[.*?\\]")
+	bad_command_regex := regexp.MustCompile("\\{|\\}")
 	song_started := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		echo := -1
 
 		//is this a command
 		if strings.HasPrefix(line, "{") {
-			if strings.HasPrefix(line, "{start_of_chorus}") {
+			command := strings.ToLower(line)
+			if strings.HasPrefix(command, "{start_of_chorus}") {
 				is_chorus = true
-			} else if strings.HasPrefix(line, "{end_of_chorus}") {
-
-			} else if strings.HasPrefix(line, "{title:") {
+				continue
+			} else if strings.HasPrefix(command, "{end_of_chorus}") {
+				continue
+			} else if strings.HasPrefix(command, "{title:") {
 				title = parseCommand(line)
-			} else if strings.HasPrefix(line, "{section:") {
+				continue
+			} else if strings.HasPrefix(command, "{section:") {
 				section = parseCommand(line)
-			} else if strings.HasPrefix(line, "{comments:") {
+				continue
+			} else if strings.HasPrefix(command, "{comments:") {
 				if !song_started {
 					song_before_comments = append(song_before_comments, parseCommand(line))
 				} else {
@@ -107,17 +112,24 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 						stanza_before_comments = append(stanza_before_comments, parseCommand(line))
 					}
 				}
-			} else if strings.HasPrefix(line, "{no_number") {
+				continue
+			} else if strings.HasPrefix(command, "{no_number") {
 				if !song_started {
 					song_stanza_num = false
 				} else {
 					stanza_show_num = false
 				}
+				continue
+			} else if i := strings.Index(command, "{echo"); i >= 0 {
+				//fall through
 			} else {
 				fmt.Printf("Unknown tag: %s\n", line)
+				continue
 			}
-			//blank line separates stanzas
-		} else if len(line) == 0 {
+		}
+
+		//blank line separates stanzas
+		if len(line) == 0 {
 			song_started = true
 
 			if len(lines) > 0 {
@@ -141,6 +153,28 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 				stanza_after_comments = make([]string, 0)
 			}
 		} else {
+			//check for echo marker
+			if i := strings.Index(line, "{echo:"); i >= 0 {
+				end := strings.Index(line, "}")
+
+				if end < 1 {
+					fmt.Printf("Bad echo tag: %s\n", line)
+				} else {
+					//to work out the index we have to remove the chords
+					clean := chord_regex.ReplaceAllString(line, "")
+					echo = strings.Index(clean, "{echo:")
+
+					echo_txt := line[i+len("{echo:") : end]
+					echo_txt = strings.TrimSpace(echo_txt)
+
+					//remove command from text
+					tmp := line[0:i]
+					tmp += echo_txt
+
+					line = tmp
+				}
+			}
+
 			chords_pos := chord_regex.FindAllStringIndex(line, -1)
 			chord_len := 0
 			chords := make([]Chord, 0)
@@ -157,7 +191,21 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 
 			//remove all chord markers
 			line = chord_regex.ReplaceAllString(line, "")
-			lines = append(lines, Line{Text: line, Chords: chords})
+			lines = append(lines, Line{Text: line, Chords: chords, EchoIndex: echo})
+
+			//check for bad commands
+			for _, pos := range bad_command_regex.FindAllStringIndex(line, -1) {
+				fmt.Println(line)
+				for i := 0; i < pos[0]; i++ {
+					fmt.Print(" ")
+				}
+				fmt.Println("^")
+			}
+
+			//Default title is first line text
+			if len(title) == 0 {
+				title = line
+			}
 		}
 	}
 

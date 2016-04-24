@@ -24,7 +24,7 @@ var (
 
 var stanzaIndent = stanzaFont.Size
 var stanzaNumberIndent = stanzaIndent / 2.0
-var chorusIndent = stanzaIndent * 2.0
+var chorusIndent = stanzaIndent * 1.5
 
 //var echoFont = PDFFont{stanzaFont.Family, "", stanzaFont.Size} DARK GREY
 //var songNumberFont = PDFFont{"Helvetica", "B", 15}
@@ -72,6 +72,9 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 		if (pdf.GetY() + stanza.getHeight(pdf)) >= height {
 			pdf.AddPage()
 		}
+
+		pdf.SetX(stanzaIndent)
+		pdf.SetLeftMargin(stanzaIndent)
 
 		if stanza.IsChorus {
 			pdf.SetLeftMargin(chorusIndent)
@@ -130,10 +133,10 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 			stanza.AfterComments,
 			commentFont)
 		pdf.Ln(stanzaHt)
-
-		pdf.SetLeftMargin(stanzaIndent)
-		pdf.SetX(stanzaIndent)
 	}
+
+	pdf.SetX(stanzaIndent)
+	pdf.SetLeftMargin(stanzaIndent)
 
 	//Print post-song comments
 	printlnSlice(

@@ -65,6 +65,10 @@ type DisplaySong struct {
 	Title    string
 }
 
+func (song DisplaySong) MatchTitle(title string) bool {
+	return song.Title == title
+}
+
 type SongPage struct {
 	Title   string
 	Songs   []DisplaySong

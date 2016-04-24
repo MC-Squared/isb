@@ -48,7 +48,9 @@
 {{end}}
 
 {{ block "content" .}}
-    {{ if .HasSong }}
+    {{ $selected := .Song.Title }}
+
+    {{ if .HasSong }}    
         <a href='/'><h3 class='title'>Home</h3></a>
     {{ else }}
         <h1 class='title'>{{ .Title }}</h1>
@@ -59,7 +61,11 @@
         <select class='select-style' id='choose-song' name='choose_song'>
             <option value="Select A Song">Select A Song</option>
             {{ range .Songs }}
-                <option value="{{ .Filename }}">{{ .Title }}</option>
+                <option value="{{ .Filename }}"
+                {{ if .MatchTitle $selected }}
+                    selected
+                {{ end }}
+                >{{ .Title }}</option>
             {{ end }}
         </select>
     </div>

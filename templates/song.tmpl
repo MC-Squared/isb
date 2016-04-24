@@ -59,7 +59,7 @@
         <select class='select-style' id='choose-song' name='choose_song'>
             <option value="Select A Song">Select A Song</option>
             {{ range .Songs }}
-                <option value="{{ . }}">{{ . }}</option>
+                <option value="{{ .Filename }}">{{ .Title }}</option>
             {{ end }}
         </select>
     </div>

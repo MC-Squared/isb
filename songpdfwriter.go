@@ -92,19 +92,32 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 		for ind, line := range stanza.Lines {
 			last_pos := 0
 			last_chord_w := 0.0
+			last_chord_x := -1.0
+			adjust_w := 0.0
+
 			for _, chord := range line.Chords {
 
 				//Put blank padding
 				//to position chords correctly
 				if chord.Position > 0 {
 					setFont(pdf, stanzaFont)
-					w = pdf.GetStringWidth(line.Text[last_pos:chord.Position])
+					w = pdf.GetStringWidth(tr(line.Text[last_pos:chord.Position]))
 					w -= last_chord_w
+					w -= adjust_w
+					pdf.Cell(w, chordHt, "")
+				}
+
+				if last_chord_x+last_chord_w > pdf.GetX() {
+					setFont(pdf, stanzaFont)
+					w = (last_chord_x + pdf.GetStringWidth("-")) - pdf.GetX()
+					adjust_w += w
+
 					pdf.Cell(w, chordHt, "")
 				}
 
 				last_chord_w, _ = print(pdf, tr, chord.Text, chordFont)
 				last_pos = chord.Position
+				last_chord_x = pdf.GetX()
 			}
 			if stanza.HasChords() {
 				pdf.Ln(chordHt)

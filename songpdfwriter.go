@@ -25,7 +25,7 @@ var (
 
 var stanzaIndent = stanzaFont.Size
 var stanzaNumberIndent = stanzaIndent / 2.0
-var chorusIndent = stanzaIndent * 1.5
+var chorusIndent = stanzaIndent * 2
 
 //var echoFont = PDFFont{stanzaFont.Family, "", stanzaFont.Size} DARK GREY
 //var songNumberFont = PDFFont{"Helvetica", "B", 15}
@@ -122,7 +122,6 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 				pdf.Cell(stanzaIndent-stanzaNumberIndent, stanzaHt, tr(num))
 			}
 
-			pdf.SetX(stanzaIndent)
 			//Do we need to print an echo portion?
 			if line.HasEcho() {
 				if line.EchoIndex > 0 {

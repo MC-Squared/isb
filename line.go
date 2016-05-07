@@ -52,7 +52,7 @@ func (line Line) PreChordText(chord Chord) string {
 		return line.Text[0:chord.Position]
 	}
 
-	pos := line.Chords[ind].Position + len(line.Chords[ind].Text)
+	pos := line.Chords[ind].Position
 
 	return line.Text[pos:chord.Position]
 }

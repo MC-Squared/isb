@@ -85,11 +85,10 @@
                 
                 {{ range $line := .Lines }}
                     {{ if $print_chords }}
-                        {{ range $chord := .Chords }}
+                        {{- range $chord := .Chords -}}
                             <span class='hidden'>
-                                {{- $line.PreChordText $chord -}}
-                            </span><span class='chord'>{{- .Text -}}</span>
-                        {{ end }}
+                                {{- $line.PreChordText $chord -}}</span><span class='chord'>{{- .Text -}}</span>
+                        {{- end -}}
                         <br>
                     {{ end }}
                     {{ .PreEchoText }}

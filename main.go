@@ -31,13 +31,17 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
 	songs_root := "./songs_master" // 1st argument is the directory location
-	filepath.Walk(songs_root, walkpath)
+	books_root := "./songs_master/songbooks"
+
+	filepath.Walk(songs_root, loadSongs)
+	filepath.Walk(books_root, loadBooks)
 
 	fmt.Printf("%d Songs loaded.\n", len(loadedSongs))
 
@@ -59,45 +63,47 @@ func main() {
 // that may be replaced in templates derived from this one.
 //var indexTemplate = template.Must(template.ParseFiles("templates/index.tmpl"))
 
-type DisplaySong struct {
+type DisplayList struct {
 	Link  string
 	Title string
 }
 
-func (song DisplaySong) MatchTitle(title string) bool {
+func (song DisplayList) MatchTitle(title string) bool {
 	return song.Title == title
 }
 
-type SongPage struct {
+type IndexPage struct {
 	Title        string
-	Songs        []DisplaySong
-	Song         Song
-	HasSong      bool
+	Songs        []DisplayList
+	Books        []DisplayList
+	ShowIndigo   bool
 	SelectedSong string
+	SelectedBook string
+}
+
+type SongPage struct {
+	Song Song
+	IndexPage
 }
 
 type BookPage struct {
-	Title        string
-	Songs        []DisplaySong
-	Songbook     Songbook
-	HasSong      bool
-	SelectedSong string
-	BookLink     string
+	Songbook Songbook
+	BookLink string
+	IndexPage
 }
 
-var loadedSongs = make([]DisplaySong, 0)
+var loadedSongs = make([]DisplayList, 0)
+var loadedBooks = make([]DisplayList, 0)
 
 // indexHandler is an HTTP handler that serves the index page.
 func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	t, err := template.ParseGlob("templates/*.tmpl")
+	t, err := template.ParseFiles("templates/index.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	data := &SongPage{
-		Title:   "Indigo Song Book",
-		HasSong: false,
-		Songs:   loadedSongs}
+	data := getBasicIndexData()
+	data.ShowIndigo = true
 
 	if err := t.ExecuteTemplate(w, "index.tmpl", data); err != nil {
 		log.Println(err)
@@ -120,26 +126,39 @@ func loadSongFile(title string, transpose int) (*Song, error) {
 	return song, nil
 }
 
+func getBasicIndexData() IndexPage {
+	index_data := IndexPage{
+		Title:        "Indigo Song Book",
+		Songs:        loadedSongs,
+		Books:        loadedBooks,
+		ShowIndigo:   false,
+		SelectedSong: "",
+		SelectedBook: ""}
+
+	return index_data
+}
+
 func bookIndexHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	sbook, err := ParseSongbookFile("./songs_master/Songbook/" + p.ByName("book") + ".songlist")
+	sbook, err := ParseSongbookFile("./songs_master/songbooks/" + p.ByName("book") + ".songlist")
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	page_data := &BookPage{
-		Title:    "Indigo Song Book",
-		HasSong:  false,
-		Songbook: *sbook,
-		Songs:    loadedSongs,
-		BookLink: sbook.Filename[0 : len(sbook.Filename)-len(".songlist")]}
+	index := getBasicIndexData()
+	index.SelectedBook = sbook.Title
+
+	book_data := &BookPage{
+		Songbook:  *sbook,
+		BookLink:  sbook.Filename[0 : len(sbook.Filename)-len(".songlist")],
+		IndexPage: index}
 
 	temp, err := template.ParseFiles("templates/index.tmpl", "templates/book.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	if err := temp.ExecuteTemplate(w, "book.tmpl", page_data); err != nil {
+	if err := temp.ExecuteTemplate(w, "book.tmpl", book_data); err != nil {
 		log.Println(err)
 	}
 }
@@ -154,20 +173,22 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	t, err := strconv.Atoi(transpose)
 
-	sbook, err := ParseSongbookFile("./songs_master/Songbook/" + p.ByName("book") + ".songlist")
+	sbook, err := ParseSongbookFile("./songs_master/songbooks/" + p.ByName("book") + ".songlist")
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	song := sbook.Songs[n-1]
+	song := sbook.Songs[n]
 	song.Transpose = t
 
+	index := getBasicIndexData()
+	index.SelectedSong = song.Title
+	index.SelectedBook = sbook.Title
+
 	page_data := &SongPage{
-		Title:   "Indigo Song Book",
-		Song:    song,
-		HasSong: true,
-		Songs:   loadedSongs}
+		Song:      song,
+		IndexPage: index}
 
 	temp, err := template.ParseGlob("templates/*.tmpl")
 	if err != nil {
@@ -193,12 +214,12 @@ func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		return
 	}
 
+	index := getBasicIndexData()
+	index.SelectedSong = data.Title
+
 	page_data := &SongPage{
-		Title:        "Indigo Song Book",
-		Song:         *data,
-		HasSong:      true,
-		Songs:        loadedSongs,
-		SelectedSong: data.Title}
+		Song:      *data,
+		IndexPage: index}
 
 	temp, err := template.ParseGlob("templates/*.tmpl")
 	if err != nil {
@@ -241,18 +262,40 @@ func pdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	w.Write([]byte("PDF Generated"))
 }
 
-func walkpath(path string, f os.FileInfo, err error) error {
+func loadSongs(path string, f os.FileInfo, err error) error {
 	if f.IsDir() && f.Name() != "songs_master" {
 		return filepath.SkipDir
 	} else if f.IsDir() {
 		return nil
 	}
 
-	song, err := ParseSongFile("songs_master/"+f.Name(), 0)
-	link := song.Filename[0 : len(song.Filename)-len(".song")]
-	loadedSongs = append(loadedSongs, DisplaySong{Link: link, Title: song.Title})
+	if strings.HasSuffix(strings.ToLower(f.Name()), ".song") {
+		song, err := ParseSongFile("songs_master/"+f.Name(), 0)
+		link := song.Filename[0 : len(song.Filename)-len(".song")]
+		loadedSongs = append(loadedSongs, DisplayList{Link: link, Title: song.Title})
 
-	return err
+		return err
+	}
+
+	return nil
+}
+
+func loadBooks(path string, f os.FileInfo, err error) error {
+	if f.IsDir() && f.Name() != "songbooks" {
+		return filepath.SkipDir
+	} else if f.IsDir() {
+		return nil
+	}
+
+	if strings.HasSuffix(strings.ToLower(f.Name()), ".songlist") {
+		book, err := ParseSongbookFile("./songs_master/songbooks/" + f.Name())
+		link := book.Filename[0 : len(book.Filename)-len(".songlist")]
+		loadedBooks = append(loadedBooks, DisplayList{Link: link, Title: book.Title})
+
+		return err
+	}
+
+	return nil
 }
 
 // readLines reads a whole file into memory

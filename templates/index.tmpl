@@ -15,7 +15,12 @@
                     window.location.href = '/song/' + $('#choose-song').val();
                 });
 
+                $('#choose-book').change(function() {
+                    window.location.href = '/book/' + $('#choose-book').val();
+                });
+
                 $('#choose-song').select2({width: 'resolve'});
+                $('#choose-book').select2({width: '328px'});
             });
         </script>
 
@@ -25,13 +30,13 @@
     <body>
         <div class='wrapper'>
             <div id="content">
-                {{ if .HasSong }}
+                {{ if not .ShowIndigo }}
                     <a href='/'><h3 class='title'>Home</h3></a>
                 {{ else }}
                     <h1 class='title'>{{ .Title }}</h1>
                 {{ end }}
 
-                {{ $selected := .SelectedSong }}
+                {{ $sel_song := .SelectedSong }}
 
                 <!-- Select a song -->
                 <div id='song-select-div'>
@@ -39,7 +44,23 @@
                         <option value="Select A Song">Select A Song</option>
                         {{ range .Songs }}
                             <option value="{{ .Link }}"
-                            {{ if .MatchTitle $selected }}
+                            {{ if .MatchTitle $sel_song }}
+                                selected
+                            {{ end }}
+                            >{{ .Title }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+
+                {{ $sel_book := .SelectedBook }}
+
+                <!-- Select a book -->
+                <div id='book-select-div'>
+                    <select class='select-style' id='choose-book' name='choose_book'>
+                        <option value="Select A Songbook">Select A Songbook</option>
+                        {{ range .Books }}
+                            <option value="{{ .Link }}"
+                            {{ if .MatchTitle $sel_book }}
                                 selected
                             {{ end }}
                             >{{ .Title }}</option>

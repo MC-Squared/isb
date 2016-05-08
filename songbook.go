@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -15,7 +16,8 @@ type Songbook struct {
 	IndexChorus   bool
 	IndexPosition int
 	Filename      string
-	Songs         []Song
+	Title         string
+	Songs         map[int]Song
 }
 
 const (
@@ -28,6 +30,7 @@ func ParseSongbookFile(filename string) (*Songbook, error) {
 	file, err := os.Open(filename)
 
 	filename = filepath.Base(filename)
+	title := filename[0 : len(filename)-len(".songlist")]
 
 	if err != nil {
 		return nil, err
@@ -40,7 +43,7 @@ func ParseSongbookFile(filename string) (*Songbook, error) {
 		use_section = false
 		use_chorus  = false
 		index_pos   = IndexNone
-		songs       = make([]Song, 0)
+		songs       = make(map[int]Song)
 	)
 
 	//bad_command_regex := regexp.MustCompile("\\{|\\}")
@@ -84,18 +87,32 @@ func ParseSongbookFile(filename string) (*Songbook, error) {
 
 		//ignore blank lines
 		if len(line) > 0 {
+			num := -1
+			//check for fixed numbering
+			if strings.Index(line, ",") > 0 {
+				num_str := line[0:strings.Index(line, ",")]
+				num, err = strconv.Atoi(num_str)
+				if err == nil {
+					line = line[len(num_str)+1 : len(line)]
+				}
+			}
+
 			song, err := ParseSongFile("./songs_master/"+line, 0)
 
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println(num, ":", err)
 			} else {
-				song.SongNumber = len(songs) + 1
-				songs = append(songs, *song)
+				if num < 0 {
+					num = len(songs) + 1
+				}
+				song.SongNumber = num
+				songs[num] = *song
 			}
 		}
 	}
 
 	return &Songbook{
+			Title:         title,
 			FixedOrder:    fixed_order,
 			Filename:      filename,
 			UseSection:    use_section,

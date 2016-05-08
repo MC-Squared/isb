@@ -1,10 +1,19 @@
 {{ template "index.tmpl" . }}
 
+{{ define "head" }}
+    <style>
+       .link {
+            display: block;
+            margin-bottom: 10px;
+        }
+    </style>
+{{ end }}
+
 {{ define "content" }}    
     {{ $link := .BookLink }}
     {{ with .Songbook }}    
         {{ range .Songs }}
-            <a href='{{ $link }}/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a><br>
+            <span class='link'><a href='{{ $link }}/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a></span>
         {{ end }}
     {{ end }}
 {{ end }}

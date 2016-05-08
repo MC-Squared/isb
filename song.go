@@ -126,6 +126,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 			} else if i := strings.Index(command, "{echo"); i >= 0 {
 				//fall through
 			} else {
+				fmt.Println(filename)
 				fmt.Printf("Unknown tag: %s\n", line)
 				continue
 			}
@@ -198,6 +199,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 
 			//check for bad commands
 			for _, pos := range bad_command_regex.FindAllStringIndex(line, -1) {
+				fmt.Println(filename)
 				fmt.Println(line)
 				for i := 0; i < pos[0]; i++ {
 					fmt.Print(" ")

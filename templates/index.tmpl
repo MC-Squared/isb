@@ -6,6 +6,18 @@
         <title>{{.Title}}</title>
         <link rel="stylesheet" type="text/css" href="/css/style.css">
         <script src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
+        <script src="/js/select2.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="/css/select2.min.css">
+
+        <script>
+            $(document).ready(function() {
+                $('#choose-song').change(function() {
+                    window.location.href = '/song/' + $('#choose-song').val();
+                });
+
+                $('#choose-song').select2({width: 'resolve'});
+            });
+        </script>
 
         {{ block "head" .}}
         {{ end }}
@@ -13,6 +25,28 @@
     <body>
         <div class='wrapper'>
             <div id="content">
+                {{ if .HasSong }}
+                    <a href='/'><h3 class='title'>Home</h3></a>
+                {{ else }}
+                    <h1 class='title'>{{ .Title }}</h1>
+                {{ end }}
+
+                {{ $selected := .SelectedSong }}
+
+                <!-- Select a song -->
+                <div id='song-select-div'>
+                    <select class='select-style' id='choose-song' name='choose_song'>
+                        <option value="Select A Song">Select A Song</option>
+                        {{ range .Songs }}
+                            <option value="{{ .Link }}"
+                            {{ if .MatchTitle $selected }}
+                                selected
+                            {{ end }}
+                            >{{ .Title }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+
                 {{block "content" .}}
                 {{end}}
             </div>

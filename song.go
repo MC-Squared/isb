@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -29,6 +30,8 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 		return nil, err
 	}
 	defer file.Close()
+
+	filename = filepath.Base(filename)
 
 	var (
 		//Song variables

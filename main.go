@@ -29,10 +29,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
@@ -41,28 +41,27 @@ func main() {
 
 	fmt.Printf("%d Songs loaded.\n", len(loadedSongs))
 
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/song/", songHandler)
-	http.HandleFunc("/pdf/", pdfHandler)
-	http.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
-	http.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("js"))))
-	log.Fatal(http.ListenAndServe("localhost:8090", nil))
+	r := httprouter.New()
+
+	r.GET("/", indexHandler)
+	r.GET("/song/:song", songHandler)
+	r.GET("/pdf/:song", pdfHandler)
+	r.GET("/book/:book", bookIndexHandler)
+	r.GET("/book/:book/:number", bookHandler)
+	r.ServeFiles("/css/*filepath", http.Dir("css"))
+	r.ServeFiles("/js/*filepath", http.Dir("js"))
+	log.Fatal(http.ListenAndServe("localhost:8090", r))
+
 }
 
 // indexTemplate is the main site template.
 // The default template includes two template blocks ("sidebar" and "content")
 // that may be replaced in templates derived from this one.
-var indexTemplate = template.Must(template.ParseFiles("templates/index.tmpl"))
-
-// Index is a data structure used to populate an indexTemplate.
-type Index struct {
-	Title string
-	Songs []DisplaySong
-}
+//var indexTemplate = template.Must(template.ParseFiles("templates/index.tmpl"))
 
 type DisplaySong struct {
-	Filename string
-	Title    string
+	Link  string
+	Title string
 }
 
 func (song DisplaySong) MatchTitle(title string) bool {
@@ -70,29 +69,44 @@ func (song DisplaySong) MatchTitle(title string) bool {
 }
 
 type SongPage struct {
-	Title   string
-	Songs   []DisplaySong
-	Song    Song
-	HasSong bool
+	Title        string
+	Songs        []DisplaySong
+	Song         Song
+	HasSong      bool
+	SelectedSong string
+}
+
+type BookPage struct {
+	Title        string
+	Songs        []DisplaySong
+	Songbook     Songbook
+	HasSong      bool
+	SelectedSong string
+	BookLink     string
 }
 
 var loadedSongs = make([]DisplaySong, 0)
 
 // indexHandler is an HTTP handler that serves the index page.
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	t, err := template.ParseGlob("templates/*.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
 	data := &SongPage{
 		Title:   "Indigo Song Book",
 		HasSong: false,
 		Songs:   loadedSongs}
 
-	if err := songTemplate.Execute(w, data); err != nil {
+	if err := t.ExecuteTemplate(w, "index.tmpl", data); err != nil {
 		log.Println(err)
 	}
 }
 
 // imageTemplate is a clone of indexTemplate that provides
 // alternate "sidebar" and "content" templates.
-var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/song.tmpl"))
+//var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/song.tmpl"))
 
 func loadSongFile(title string, transpose int) (*Song, error) {
 	filename := "songs_master/" + title + ".song"
@@ -106,8 +120,33 @@ func loadSongFile(title string, transpose int) (*Song, error) {
 	return song, nil
 }
 
-func songHandler(w http.ResponseWriter, r *http.Request) {
-	target := strings.TrimPrefix(r.URL.Path, "/song/")
+func bookIndexHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	sbook, err := ParseSongbookFile("./songs_master/Songbook/" + p.ByName("book") + ".songlist")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	page_data := &BookPage{
+		Title:    "Indigo Song Book",
+		HasSong:  false,
+		Songbook: *sbook,
+		Songs:    loadedSongs,
+		BookLink: sbook.Filename[0 : len(sbook.Filename)-len(".songlist")]}
+
+	temp, err := template.ParseFiles("templates/index.tmpl", "templates/book.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := temp.ExecuteTemplate(w, "book.tmpl", page_data); err != nil {
+		log.Println(err)
+	}
+}
+
+func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	num := p.ByName("number")
+	n, _ := strconv.Atoi(num)
 
 	var transpose = r.FormValue("transpose")
 	if len(transpose) == 0 {
@@ -115,7 +154,39 @@ func songHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	t, err := strconv.Atoi(transpose)
 
-	data, err := loadSongFile(target, t)
+	sbook, err := ParseSongbookFile("./songs_master/Songbook/" + p.ByName("book") + ".songlist")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	song := sbook.Songs[n-1]
+	song.Transpose = t
+
+	page_data := &SongPage{
+		Title:   "Indigo Song Book",
+		Song:    song,
+		HasSong: true,
+		Songs:   loadedSongs}
+
+	temp, err := template.ParseGlob("templates/*.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := temp.ExecuteTemplate(w, "song.tmpl", page_data); err != nil {
+		log.Println(err)
+	}
+}
+
+func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	var transpose = r.FormValue("transpose")
+	if len(transpose) == 0 {
+		transpose = "0"
+	}
+	t, err := strconv.Atoi(transpose)
+
+	data, err := loadSongFile(p.ByName("song"), t)
 	if err != nil {
 		log.Println(err)
 		http.NotFound(w, r)
@@ -123,26 +194,30 @@ func songHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page_data := &SongPage{
-		Title:   "Indigo Song Book",
-		Song:    *data,
-		HasSong: true,
-		Songs:   loadedSongs}
+		Title:        "Indigo Song Book",
+		Song:         *data,
+		HasSong:      true,
+		Songs:        loadedSongs,
+		SelectedSong: data.Title}
 
-	if err := songTemplate.Execute(w, page_data); err != nil {
+	temp, err := template.ParseGlob("templates/*.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := temp.ExecuteTemplate(w, "song.tmpl", page_data); err != nil {
 		log.Println(err)
 	}
 }
 
-func pdfHandler(w http.ResponseWriter, r *http.Request) {
-	target := path.Base(r.URL.Path)
-
+func pdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var transpose = r.FormValue("transpose")
 	if len(transpose) == 0 {
 		transpose = "0"
 	}
 	t, err := strconv.Atoi(transpose)
 
-	song, err := loadSongFile(target, t)
+	song, err := loadSongFile(p.ByName("song"), t)
 	if err != nil {
 		log.Println(err)
 		http.NotFound(w, r)
@@ -174,8 +249,8 @@ func walkpath(path string, f os.FileInfo, err error) error {
 	}
 
 	song, err := ParseSongFile("songs_master/"+f.Name(), 0)
-	link := song.Filename[len("songs_master/") : len(song.Filename)-len(".song")]
-	loadedSongs = append(loadedSongs, DisplaySong{Filename: link, Title: song.Title})
+	link := song.Filename[0 : len(song.Filename)-len(".song")]
+	loadedSongs = append(loadedSongs, DisplaySong{Link: link, Title: song.Title})
 
 	return err
 }

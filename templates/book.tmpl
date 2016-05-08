@@ -1,0 +1,10 @@
+{{ template "index.tmpl" . }}
+
+{{ define "content" }}    
+    {{ $link := .BookLink }}
+    {{ with .Songbook }}    
+        {{ range .Songs }}
+            <a href='{{ $link }}/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a><br>
+        {{ end }}
+    {{ end }}
+{{ end }}

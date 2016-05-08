@@ -1,6 +1,5 @@
-{{ block "head" .}}
-    <script src="/js/select2.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="/css/select2.min.css">
+{{ template "index.tmpl" . }}
+{{ define "head" }}
     <style>
         .echo {
             color: grey;
@@ -10,44 +9,9 @@
             visibility: hidden;
         }
     </style>
-
-    <script>
-        $(document).ready(function() {
-            $('#choose-song').change(function() {
-                window.location.href = '/song/' + $('#choose-song').val();
-            });
-
-            $('#choose-song').select2({width: 'resolve'});
-        });
-    </script>
 {{ end }}
 
-{{ block "search-title" .}}
-    
-{{end}}
-
-{{ block "content" .}}
-    {{ $selected := .Song.Title }}
-
-    {{ if .HasSong }}    
-        <a href='/'><h3 class='title'>Home</h3></a>
-    {{ else }}
-        <h1 class='title'>{{ .Title }}</h1>
-    {{ end }}
-    
-    <!-- Select a song -->
-    <div id='song-select-div'>
-        <select class='select-style' id='choose-song' name='choose_song'>
-            <option value="Select A Song">Select A Song</option>
-            {{ range .Songs }}
-                <option value="{{ .Filename }}"
-                {{ if .MatchTitle $selected }}
-                    selected
-                {{ end }}
-                >{{ .Title }}</option>
-            {{ end }}
-        </select>
-    </div>
+{{ define "content" }}    
     {{ if .HasSong }}
         {{ with .Song }}
             <form action=''>

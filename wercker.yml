@@ -43,3 +43,25 @@ build:
         name: go test
         code: |
           go test ./...
+deploy:
+  steps:
+    - add-to-known_hosts:
+        hostname: ams.nztc.ac.nz
+    - mktemp:
+        envvar: PRIVATEKEY_PATH
+    - create-file:
+        name: write key
+        filename: $PRIVATEKEY_PATH
+        content: $WERCKER_PRIVATE
+        overwrite: true
+    - script:
+        name: transfer application
+        code: |
+          pwd
+          ls -la
+          scp -i $PRIVATEKEY_PATH isb ams-dev@ams.nztc.ac.nz:/var/www/html/isb
+    - script:
+        name: start application
+        code: |
+          ssh -i $PRIVATEKEY_PATH -l ams-dev ams.nztc.ac.nz "if [[ \"\$(status isb)\" = *start/running* ]]; then stop isb -n ; fi"
+          ssh -i $PRIVATEKEY_PATH -l ams-dev ams.nztc.ac.nz start isb

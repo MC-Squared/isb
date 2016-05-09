@@ -1,3 +1,5 @@
+[![wercker status](https://app.wercker.com/status/f19eaf65003b2ab027cc77b8d4be9a51/m "wercker status")](https://app.wercker.com/project/bykey/f19eaf65003b2ab027cc77b8d4be9a51)
+
 # Indigo Song Book
 
 ## The overall goal of this project is to create songbooks with:

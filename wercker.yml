@@ -46,7 +46,7 @@ build:
 deploy:
   steps:
     - setup-go-workspace
-    
+
     # Gets the dependencies
     - script:
         name: go get
@@ -72,6 +72,11 @@ deploy:
         overwrite: true
 
     - script:
+      name: stop application
+      code: |
+        ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "if [[ \"\$(status isb)\" = *start/running* ]]; then stop isb -n ; fi"
+
+    - script:
         name: transfer application
         code: |
           pwd
@@ -89,5 +94,4 @@ deploy:
     - script:
         name: start application
         code: |
-          ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "if [[ \"\$(status isb)\" = *start/running* ]]; then stop isb -n ; fi"
           ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz start isb

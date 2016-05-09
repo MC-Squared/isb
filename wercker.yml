@@ -45,6 +45,8 @@ build:
           go test ./...
 deploy:
   steps:
+    - setup-go-workspace
+    
     # Gets the dependencies
     - script:
         name: go get
@@ -58,7 +60,7 @@ deploy:
           go build ./...
 
     - add-to-known_hosts:
-        hostname: ams.nztc.ac.nz
+        hostname: isb2.nztc.ac.nz
 
     - mktemp:
         envvar: PRIVATEKEY_PATH
@@ -74,18 +76,18 @@ deploy:
         code: |
           pwd
           ls -la
-          scp -i $PRIVATEKEY_PATH isb ams-dev@ams.nztc.ac.nz:/var/www/html/isb
+          scp -i $PRIVATEKEY_PATH isb ams-dev@isb2.nztc.ac.nz:/var/www/html/isb
 
     - script:
         name: transfer assets
         code: |
           pwd
           ls -la
-          scp -i $PRIVATEKEY_PATH -r css/* ams-dev@ams.nztc.ac.nz:/var/www/html/isb/css
-          scp -i $PRIVATEKEY_PATH -r js/* ams-dev@ams.nztc.ac.nz:/var/www/html/isb/js
-          scp -i $PRIVATEKEY_PATH -r templates/* ams-dev@ams.nztc.ac.nz:/var/www/html/isb/templates
+          scp -i $PRIVATEKEY_PATH -r css/* ams-dev@isb2.nztc.ac.nz:/var/www/html/isb/css
+          scp -i $PRIVATEKEY_PATH -r js/* ams-dev@isb2.nztc.ac.nz:/var/www/html/isb/js
+          scp -i $PRIVATEKEY_PATH -r templates/* ams-dev@isb2.nztc.ac.nz:/var/www/html/isb/templates
     - script:
         name: start application
         code: |
-          ssh -i $PRIVATEKEY_PATH -l ams-dev ams.nztc.ac.nz "if [[ \"\$(status isb)\" = *start/running* ]]; then stop isb -n ; fi"
-          ssh -i $PRIVATEKEY_PATH -l ams-dev ams.nztc.ac.nz start isb
+          ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "if [[ \"\$(status isb)\" = *start/running* ]]; then stop isb -n ; fi"
+          ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz start isb

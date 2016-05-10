@@ -77,6 +77,10 @@
                 </div>
 
                 {{block "content" .}}
+                <h3>Recent Songs:</h3>
+                    {{ range .Recent }}
+                        <a href='/song/{{ .Link }}'>{{ .Title }}</a><br><br>
+                    {{ end }}
                 {{end}}
             </div>
         </div>

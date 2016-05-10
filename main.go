@@ -115,6 +115,7 @@ func (song DisplayList) MatchTitle(title string) bool {
 
 type IndexPage struct {
 	Title        string
+	Recent       []DisplayList
 	Songs        []DisplayList
 	Books        []DisplayList
 	ShowIndigo   bool
@@ -143,6 +144,7 @@ type BookPage struct {
 
 var loadedSongs = make([]DisplayList, 0)
 var loadedBooks = make([]DisplayList, 0)
+var recent = make([]DisplayList, 0)
 
 // indexHandler is an HTTP handler that serves the index page.
 func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -178,6 +180,7 @@ func loadSongFile(title string, transpose int) (*Song, error) {
 func getBasicIndexData() IndexPage {
 	index_data := IndexPage{
 		Title:        "Indigo Song Book",
+		Recent:       recent,
 		Songs:        loadedSongs,
 		Books:        loadedBooks,
 		ShowIndigo:   false,
@@ -235,6 +238,8 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	index.SelectedSong = song.Title
 	index.SelectedBook = sbook.Title
 
+	updateRecent(song.Link(), song.Title)
+
 	page_data := &SongPage{
 		Song:      song,
 		IndexPage: index}
@@ -246,6 +251,22 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 	if err := temp.ExecuteTemplate(w, "song.tmpl", page_data); err != nil {
 		log.Println(err)
+	}
+}
+
+func updateRecent(link string, title string) {
+	//if the song is already in the list, move it to the top
+	for i, dl := range recent {
+		if dl.Title == title {
+			//remove element
+			recent = append(recent[:i], recent[i+1:]...)
+			break
+		}
+	}
+
+	recent = append([]DisplayList{DisplayList{Link: link, Title: title}}, recent...)
+	if len(recent) > 5 {
+		recent = recent[0:5]
 	}
 }
 
@@ -262,6 +283,8 @@ func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		http.NotFound(w, r)
 		return
 	}
+
+	updateRecent(p.ByName("song"), data.Title)
 
 	index := getBasicIndexData()
 	index.SelectedSong = data.Title

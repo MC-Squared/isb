@@ -80,5 +80,3 @@ build-and-deploy:
         name: start application
         code: |
           ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "./start-isb.sh < /dev/null > ./isb.log 2>&1 &"
-
-

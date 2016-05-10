@@ -40,44 +40,11 @@
                     <h1 class='title'>{{ .Title }}</h1>
                 {{ end }}
 
-                {{ $sel_song := .SelectedSong }}
-
-                <!-- Select a song -->
-                <div id='song-select-div'>
-                    <select class='select-style' id='choose-song' name='choose_song'>
-                        {{ if not .HasSong }}
-                            <option value="">Select A Song</option>
-                        {{ end }}
-                        {{ range .Songs }}
-                            <option value="{{ .Link }}"
-                            {{ if .MatchTitle $sel_song }}
-                                selected
-                            {{ end }}
-                            >{{ .Title }}</option>
-                        {{ end }}
-                    </select>
-                </div>
-
-                {{ $sel_book := .SelectedBook }}
-
-                <!-- Select a book -->
-                <div id='book-select-div'>
-                    <select class='select-style' id='choose-book' name='choose_book'>
-                        {{ if not .HasBook }}
-                            <option value="">Select A Songbook</option>
-                        {{ end }}
-                        {{ range .Books }}
-                            <option value="{{ .Link }}"
-                            {{ if .MatchTitle $sel_book }}
-                                selected
-                            {{ end }}
-                            >{{ .Title }}</option>
-                        {{ end }}
-                    </select>
-                </div>
-
                 {{block "content" .}}
-                <h3>Recent Songs:</h3>
+                    {{ template "_song_select.tmpl" .}}
+                    {{ template "_book_select.tmpl" .}}
+                    
+                    <h3>Recent Songs:</h3>
                     {{ range .Recent }}
                         <a href='/song/{{ .Link }}'>{{ .Title }}</a><br><br>
                     {{ end }}

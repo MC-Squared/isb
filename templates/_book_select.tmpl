@@ -1,0 +1,17 @@
+{{ $sel_book := .SelectedBook }}
+
+<!-- Select a book -->
+<div id='book-select-div'>
+    <select class='select-style' id='choose-book' name='choose_book'>
+        {{ if not .HasBook }}
+            <option value="">Select A Songbook</option>
+        {{ end }}
+        {{ range .Books }}
+            <option value="{{ .Link }}"
+            {{ if .MatchTitle $sel_book }}
+                selected
+            {{ end }}
+            >{{ .Title }}</option>
+        {{ end }}
+    </select>
+</div>

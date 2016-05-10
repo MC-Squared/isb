@@ -9,11 +9,11 @@
     </style>
 {{ end }}
 
-{{ define "content" }}    
-    {{ $link := .BookLink }}
+{{ define "content" }}
     {{ with .Songbook }}    
+        <h1 class='title'>{{ .Title }}</h1>
         {{ range .Songs }}
-            <span class='link'><a href='{{ $link }}/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a></span>
+            <span class='link'><a href='song/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a></span>
         {{ end }}
     {{ end }}
 {{ end }}

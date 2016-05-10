@@ -1,0 +1,17 @@
+{{ $sel_song := .SelectedSong }}
+
+<!-- Select a song -->
+<div id='song-select-div'>
+    <select class='select-style' id='choose-song' name='choose_song'>
+        {{ if not .HasSong }}
+            <option value="">Select A Song</option>
+        {{ end }}
+        {{ range .Songs }}
+            <option value="{{ .Link }}"
+            {{ if .MatchTitle $sel_song }}
+                selected
+            {{ end }}
+            >{{ .Title }}</option>
+        {{ end }}
+    </select>
+</div>

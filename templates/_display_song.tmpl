@@ -1,0 +1,61 @@
+{{ with .Song }}
+    <form action=''>
+        <input class='button' type='submit' value='Capo'>
+        <input 
+            type='text' 
+            name='transpose' 
+            size='2' 
+            style='height: 25px; text-align:center;'
+            value='{{ .Transpose }}'>
+    </form>
+    <br>
+    <a href='/pdf/{{ .Link }}?transpose={{ .Transpose }}'>Get PDF Version</a>
+    <br>
+    <h1 class='title'>{{ .Title }}</h1>
+    <span class='section'>{{ .Section }}</span><br>
+
+    {{ range .BeforeComments }}
+        <span class='comment'>{{ . }}</span><br>
+    {{ end }}
+    {{ if .HasBeforeComments }}
+        <br>
+    {{ end }}
+
+    {{ range .Stanzas }}
+        {{ if .IsChorus }}
+            <div class='chorus'>
+        {{ end }}
+
+        {{ range .BeforeComments }}
+            <span class='comment'>{{ . }}</span><br>
+        {{ end }}
+
+        {{ $print_chords := .HasChords }}
+        
+        {{ range $line := .Lines }}
+            {{ if $print_chords }}
+                {{- range $chord := .Chords -}}
+                    <span class='hidden'>
+                        {{- $line.PreChordText $chord -}}</span><span class='chord'>{{- .Text -}}</span>
+                {{- end -}}
+                <br>
+            {{ end }}
+            {{ .PreEchoText }}
+            {{- if .HasEcho -}}
+                <span class='echo'>{{ .EchoText }}</span>
+            {{- end -}}
+            <br>
+        {{ end }}
+        {{ range .AfterComments }}
+            <span class='comment'>{{ . }}</span><br>
+        {{ end }}
+        <br>
+
+        {{ if .IsChorus }}
+            </div>
+        {{ end }}
+    {{ end }}
+    {{ range .AfterComments }}
+        <span class='comment'>{{ . }}</span><br>
+    {{ end }}
+{{ end }}

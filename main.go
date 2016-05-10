@@ -61,19 +61,14 @@ func main() {
 	r.GET("/index.html", indexHandler)
 	r.GET("/song/:song", songHandler)
 	r.GET("/pdf/:song", pdfHandler)
-	r.GET("/book/:book", bookIndexHandler)
-	r.GET("/book/:book/:number", bookHandler)
+	r.GET("/book/:book/index", bookIndexHandler)
+	r.GET("/book/:book/song/:number", bookHandler)
 	r.ServeFiles("/css/*filepath", http.Dir("css"))
 	r.ServeFiles("/js/*filepath", http.Dir("js"))
 
 	log.Fatal(http.ListenAndServe(":8090", r))
 
 }
-
-// indexTemplate is the main site template.
-// The default template includes two template blocks ("sidebar" and "content")
-// that may be replaced in templates derived from this one.
-//var indexTemplate = template.Must(template.ParseFiles("templates/index.tmpl"))
 
 type DisplayList struct {
 	Link  string
@@ -113,6 +108,10 @@ func (song DisplayList) MatchTitle(title string) bool {
 	return song.Title == title
 }
 
+func (song Song) MatchNumber(num int) bool {
+	return song.SongNumber == num
+}
+
 type IndexPage struct {
 	Title        string
 	Recent       []DisplayList
@@ -132,13 +131,15 @@ func (i IndexPage) HasBook() bool {
 }
 
 type SongPage struct {
-	Song Song
+	Song     Song
+	Songbook Songbook
+	NextSong int
+	PrevSong int
 	IndexPage
 }
 
 type BookPage struct {
 	Songbook Songbook
-	BookLink string
 	IndexPage
 }
 
@@ -148,7 +149,7 @@ var recent = make([]DisplayList, 0)
 
 // indexHandler is an HTTP handler that serves the index page.
 func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	t, err := template.ParseFiles("templates/index.tmpl")
+	t, err := template.ParseFiles("templates/index.tmpl", "templates/_song_select.tmpl", "templates/_book_select.tmpl")
 	if err != nil {
 		panic(err)
 	}
@@ -160,10 +161,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		log.Println(err)
 	}
 }
-
-// imageTemplate is a clone of indexTemplate that provides
-// alternate "sidebar" and "content" templates.
-//var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/song.tmpl"))
 
 func loadSongFile(title string, transpose int) (*Song, error) {
 	filename := songs_root + "/" + title + ".song"
@@ -202,15 +199,14 @@ func bookIndexHandler(w http.ResponseWriter, r *http.Request, p httprouter.Param
 
 	book_data := &BookPage{
 		Songbook:  *sbook,
-		BookLink:  sbook.Filename[0 : len(sbook.Filename)-len(".songlist")],
 		IndexPage: index}
 
-	temp, err := template.ParseFiles("templates/index.tmpl", "templates/book.tmpl")
+	temp, err := template.ParseFiles("templates/index.tmpl", "templates/book_index.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	if err := temp.ExecuteTemplate(w, "book.tmpl", book_data); err != nil {
+	if err := temp.ExecuteTemplate(w, "book_index.tmpl", book_data); err != nil {
 		log.Println(err)
 	}
 }
@@ -231,6 +227,35 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		fmt.Println(err)
 	}
 
+	keys := make([]int, len(sbook.Songs))
+	i := 0
+	for k := range sbook.Songs {
+		keys[i] = k
+		i++
+	}
+	sort.Sort(sort.IntSlice(keys))
+
+	prev := n
+	next := n
+	for _, i := range keys {
+		if i < n {
+			prev = i
+		}
+
+		if i > n {
+			next = i
+			break
+		}
+	}
+
+	if next == n {
+		next = 0
+	}
+
+	if prev == n {
+		prev = 0
+	}
+
 	song := sbook.Songs[n]
 	song.Transpose = t
 
@@ -242,14 +267,17 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 	page_data := &SongPage{
 		Song:      song,
+		Songbook:  *sbook,
+		PrevSong:  prev,
+		NextSong:  next,
 		IndexPage: index}
 
-	temp, err := template.ParseGlob("templates/*.tmpl")
+	temp, err := template.ParseFiles("templates/index.tmpl", "templates/_song_select.tmpl", "templates/_book_select.tmpl", "templates/_display_song.tmpl", "templates/_song_select.tmpl", "templates/book_song.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	if err := temp.ExecuteTemplate(w, "song.tmpl", page_data); err != nil {
+	if err := temp.ExecuteTemplate(w, "book_song.tmpl", page_data); err != nil {
 		log.Println(err)
 	}
 }
@@ -361,7 +389,7 @@ func loadBooks(path string, f os.FileInfo, err error) error {
 
 	if strings.HasSuffix(strings.ToLower(f.Name()), ".songlist") {
 		book, err := ParseSongbookFile(books_root+"/"+f.Name(), songs_root)
-		link := book.Filename[0 : len(book.Filename)-len(".songlist")]
+		link := book.Filename[0:len(book.Filename)-len(".songlist")] + "/index"
 		loadedBooks = append(loadedBooks, DisplayList{Link: link, Title: book.Title})
 
 		return err

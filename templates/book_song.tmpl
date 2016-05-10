@@ -1,0 +1,62 @@
+{{ template "index.tmpl" . }}
+
+{{ define "head" }}
+    <script>
+        $(document).ready(function() {
+            $('select').change(function() {
+                if ($(this).val() != '') {
+                    window.location.href = $(this).val();
+                }
+            });
+
+            $('#choose-num').select2({width: '80px'});
+            $('#choose-title').select2({width: 'resolve'});
+        });
+    </script>
+{{ end }}
+
+{{ define "content" }}
+    <h3 class='title'>{{ .Songbook.Title }} #{{ .Song.SongNumber }}</h3>
+    <table style="width:100%;">
+        <tr>
+            <td style='width: 33%;'>
+            {{ if .PrevSong }}
+                <a href='{{ .PrevSong }}'>Prev ({{ .PrevSong }})</a>
+            {{ end }}                
+            </td>
+            <td style='text-align: center; width: 33%;'>
+                <a href='../index'>Index</a>
+            </td>
+            <td style='text-align: right;'>
+            {{ if .NextSong }}
+                <a href='{{ .NextSong }}'>Next ({{ .NextSong }})</a>
+            {{ end }}
+
+            </td>
+        </tr>
+    </table>
+    <br>
+    <h3>Jump to</h3>
+    {{ $current := .Song.SongNumber }}
+    Number: <select id='choose-num'>
+        {{ range .Songbook.Songs }}
+            <option value="{{ .SongNumber }}"
+            {{ if .MatchNumber $current }}
+                selected
+            {{ end }}
+            >{{ .SongNumber }}</option>
+        {{ end }}
+    </select>
+    <br>
+    <br>
+    Title: <select class='select-style' id='choose-title'>
+        {{ range .Songbook.Songs }}
+            <option value="{{ .SongNumber }}"
+            {{ if .MatchNumber $current }}
+                selected
+            {{ end }}
+            >{{ .Title }}</option>
+        {{ end }}
+    </select>
+    {{ template "_display_song.tmpl" .}}
+{{ end }}

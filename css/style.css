@@ -46,6 +46,14 @@ html{
     color: #435400;
 }
 
+.echo {
+    color: grey;
+}
+
+.hidden {
+    visibility: hidden;
+}
+
 #song-select-div, #book-select-div {
     text-align: center;
     margin-bottom: 8px;

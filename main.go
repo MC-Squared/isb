@@ -36,14 +36,17 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func main() {
-	songs_root := "./songs_master" // 1st argument is the directory location
-	books_root := "./songs_master/songbooks"
+var (
+	songs_root = "./songs"
+	books_root = "./books"
+)
 
+func main() {
 	filepath.Walk(songs_root, loadSongs)
 	filepath.Walk(books_root, loadBooks)
 
 	fmt.Printf("%d Songs loaded.\n", len(loadedSongs))
+	fmt.Printf("%d Books loaded.\n", len(loadedBooks))
 
 	r := httprouter.New()
 
@@ -115,7 +118,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 //var songTemplate = template.Must(template.Must(indexTemplate.Clone()).ParseFiles("templates/song.tmpl"))
 
 func loadSongFile(title string, transpose int) (*Song, error) {
-	filename := "songs_master/" + title + ".song"
+	filename := songs_root + "/" + title + ".song"
 
 	song, err := ParseSongFile(filename, transpose)
 
@@ -139,7 +142,7 @@ func getBasicIndexData() IndexPage {
 }
 
 func bookIndexHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	sbook, err := ParseSongbookFile("./songs_master/songbooks/" + p.ByName("book") + ".songlist")
+	sbook, err := ParseSongbookFile(books_root+"/"+p.ByName("book")+".songlist", songs_root)
 
 	if err != nil {
 		fmt.Println(err)
@@ -173,7 +176,7 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	t, err := strconv.Atoi(transpose)
 
-	sbook, err := ParseSongbookFile("./songs_master/songbooks/" + p.ByName("book") + ".songlist")
+	sbook, err := ParseSongbookFile(books_root+"/"+p.ByName("book")+".songlist", songs_root)
 
 	if err != nil {
 		fmt.Println(err)
@@ -263,14 +266,14 @@ func pdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 }
 
 func loadSongs(path string, f os.FileInfo, err error) error {
-	if f.IsDir() && f.Name() != "songs_master" {
+	if f.IsDir() && f.Name() != songs_root[2:] {
 		return filepath.SkipDir
 	} else if f.IsDir() {
 		return nil
 	}
 
 	if strings.HasSuffix(strings.ToLower(f.Name()), ".song") {
-		song, err := ParseSongFile("songs_master/"+f.Name(), 0)
+		song, err := ParseSongFile(songs_root+"/"+f.Name(), 0)
 		link := song.Filename[0 : len(song.Filename)-len(".song")]
 		loadedSongs = append(loadedSongs, DisplayList{Link: link, Title: song.Title})
 
@@ -281,14 +284,14 @@ func loadSongs(path string, f os.FileInfo, err error) error {
 }
 
 func loadBooks(path string, f os.FileInfo, err error) error {
-	if f.IsDir() && f.Name() != "songbooks" {
+	if f.IsDir() && f.Name() != books_root[2:] {
 		return filepath.SkipDir
 	} else if f.IsDir() {
 		return nil
 	}
 
 	if strings.HasSuffix(strings.ToLower(f.Name()), ".songlist") {
-		book, err := ParseSongbookFile("./songs_master/songbooks/" + f.Name())
+		book, err := ParseSongbookFile(books_root+"/"+f.Name(), songs_root)
 		link := book.Filename[0 : len(book.Filename)-len(".songlist")]
 		loadedBooks = append(loadedBooks, DisplayList{Link: link, Title: book.Title})
 

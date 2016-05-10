@@ -26,7 +26,7 @@ const (
 	IndexEnd   = 2
 )
 
-func ParseSongbookFile(filename string) (*Songbook, error) {
+func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 	file, err := os.Open(filename)
 
 	filename = filepath.Base(filename)
@@ -54,7 +54,10 @@ func ParseSongbookFile(filename string) (*Songbook, error) {
 		//is this a command
 		if strings.HasPrefix(line, "{") {
 			command := strings.ToLower(line)
-			if strings.HasPrefix(command, "{fixed_order}") {
+			if strings.HasPrefix(command, "{title:") {
+				title = parseCommand(line)
+				continue
+			} else if strings.HasPrefix(command, "{fixed_order}") {
 				fixed_order = true
 				continue
 			} else if strings.HasPrefix(command, "{index_use_sections}") {
@@ -97,7 +100,7 @@ func ParseSongbookFile(filename string) (*Songbook, error) {
 				}
 			}
 
-			song, err := ParseSongFile("./songs_master/"+line, 0)
+			song, err := ParseSongFile(songs_root+"/"+line, 0)
 
 			if err != nil {
 				fmt.Println(num, ":", err)

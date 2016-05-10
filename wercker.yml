@@ -16,7 +16,7 @@ box: golang
 
     # - mongodb
     # http://devcenter.wercker.com/docs/services/mongodb.html
-build:
+build-and-deploy:
   # The steps that will be executed on build
   # Steps make up the actions in your pipeline
   # Read more about steps on our dev center:
@@ -43,21 +43,6 @@ build:
         name: go test
         code: |
           go test ./...
-deploy:
-  steps:
-    - setup-go-workspace
-
-    # Gets the dependencies
-    - script:
-        name: go get
-        code: |
-          go get
-
-    # Build the project
-    - script:
-        name: go build
-        code: |
-          go build ./...
 
     - add-to-known_hosts:
         hostname: isb2.nztc.ac.nz
@@ -74,7 +59,7 @@ deploy:
     - script:
       name: stop application
       code: |
-        ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "if [[ \"\$(status isb)\" = *start/running* ]]; then stop isb -n ; fi"
+        ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "./stop-isb.sh < /dev/null > ./isb.log 2>&1 &"
 
     - script:
         name: transfer application
@@ -94,4 +79,6 @@ deploy:
     - script:
         name: start application
         code: |
-          ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz start isb
+          ssh -i $PRIVATEKEY_PATH -l ams-dev isb2.nztc.ac.nz "./start-isb.sh < /dev/null > ./isb.log 2>&1 &"
+
+

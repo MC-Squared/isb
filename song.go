@@ -209,7 +209,44 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 
 			//Default title is first line text
 			if len(title) == 0 {
+				//Replace all quotation marks in title
 				title = line
+				re := regexp.MustCompile("[\"“”]")
+				title = re.ReplaceAllString(title, "")
+				title = strings.TrimSpace(title)
+
+				//trim any trailing/leading puncutation
+				start_reg := regexp.MustCompile("^[a-zA-Z0-9]")
+				end_reg := regexp.MustCompile("[a-zA-Z0-9]$")
+				start_done := false
+				end_done := false
+
+				for {
+					if len(title) == 1 {
+						break
+					}
+
+					pos := start_reg.FindAllStringIndex(title, 1)
+
+					//No match, title has punctuation at the start
+					if !start_done && len(pos) == 0 {
+						title = title[1:]
+					} else {
+						start_done = true
+					}
+
+					pos = end_reg.FindAllStringIndex(title, 1)
+
+					if !end_done && len(pos) == 0 {
+						title = title[0 : len(title)-1]
+					} else {
+						end_done = true
+					}
+
+					if start_done && end_done {
+						break
+					}
+				}
 			}
 		}
 	}

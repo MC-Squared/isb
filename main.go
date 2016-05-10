@@ -30,6 +30,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -47,6 +49,10 @@ func main() {
 
 	fmt.Printf("%d Songs loaded.\n", len(loadedSongs))
 	fmt.Printf("%d Books loaded.\n", len(loadedBooks))
+
+	//Sort lists by title
+	sort.Sort(ByTitle(loadedSongs))
+	sort.Sort(ByTitle(loadedBooks))
 
 	r := httprouter.New()
 
@@ -72,6 +78,35 @@ func main() {
 type DisplayList struct {
 	Link  string
 	Title string
+}
+
+// ByTitle implements sort.Interface for []DisplayList based on
+// the Title field.
+type ByTitle []DisplayList
+
+func (a ByTitle) Len() int      { return len(a) }
+func (a ByTitle) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByTitle) Less(i, j int) bool {
+	num_regex := regexp.MustCompile("^[0-9]")
+
+	i_pos := num_regex.FindAllStringIndex(a[i].Title, 1)
+	j_pos := num_regex.FindAllStringIndex(a[j].Title, 1)
+
+	i_num := (len(i_pos) > 0)
+	j_num := (len(j_pos) > 0)
+
+	//neither title begins with a number,
+	//or both begin with a number, normal sort
+	if i_num == j_num {
+		return a[i].Title < a[j].Title
+	}
+
+	//I is a number, put it at the end
+	if i_num {
+		return false
+	}
+
+	return true
 }
 
 func (song DisplayList) MatchTitle(title string) bool {

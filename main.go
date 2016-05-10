@@ -51,13 +51,16 @@ func main() {
 	r := httprouter.New()
 
 	r.GET("/", indexHandler)
+	r.GET("/index.php", indexHandler)
+	r.GET("/index.html", indexHandler)
 	r.GET("/song/:song", songHandler)
 	r.GET("/pdf/:song", pdfHandler)
 	r.GET("/book/:book", bookIndexHandler)
 	r.GET("/book/:book/:number", bookHandler)
 	r.ServeFiles("/css/*filepath", http.Dir("css"))
 	r.ServeFiles("/js/*filepath", http.Dir("js"))
-	log.Fatal(http.ListenAndServe("localhost:8090", r))
+
+	log.Fatal(http.ListenAndServe(":8090", r))
 
 }
 

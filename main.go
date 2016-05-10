@@ -122,6 +122,14 @@ type IndexPage struct {
 	SelectedBook string
 }
 
+func (i IndexPage) HasSong() bool {
+	return len(i.SelectedSong) > 0
+}
+
+func (i IndexPage) HasBook() bool {
+	return len(i.SelectedBook) > 0
+}
+
 type SongPage struct {
 	Song Song
 	IndexPage

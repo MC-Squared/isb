@@ -1,6 +1,9 @@
 {{ template "index.tmpl" . }}
+{{ template "_book_navigation.tmpl" .}}
 
 {{ define "head" }}
+    {{ block "_book_nav_head" . }}
+    {{ end }}
     <style>
        .link {
             display: block;
@@ -10,10 +13,10 @@
 {{ end }}
 
 {{ define "content" }}
-    {{ with .Songbook }}    
-        <h1 class='title'>{{ .Title }}</h1>
-        {{ range .Songs }}
-            <span class='link'><a href='song/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a></span>
-        {{ end }}
+    <h1 class='title'>{{ .Songbook.Title }}</h1>
+    {{ block "_book_nav_content" .}}
+    {{ end }}
+    {{ range .Songbook.Songs }}
+        <span class='link'><a href='song/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a></span>
     {{ end }}
 {{ end }}

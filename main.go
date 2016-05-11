@@ -1,25 +1,3 @@
-/*
-Copyright 2016 Google Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-// Command template is a trivial web server that uses the text/template (and
-// html/template) package's "block" feature to implement a kind of template
-// inheritance.
-//
-// It should be executed from the directory in which the source resides,
-// as it will look for its template files in the current directory.
 package main
 
 import (
@@ -135,11 +113,13 @@ type SongPage struct {
 	Songbook Songbook
 	NextSong int
 	PrevSong int
+	Selected int
 	IndexPage
 }
 
 type BookPage struct {
 	Songbook Songbook
+	Selected int
 	IndexPage
 }
 
@@ -201,7 +181,10 @@ func bookIndexHandler(w http.ResponseWriter, r *http.Request, p httprouter.Param
 		Songbook:  *sbook,
 		IndexPage: index}
 
-	temp, err := template.ParseFiles("templates/index.tmpl", "templates/book_index.tmpl")
+	temp, err := template.ParseFiles(
+		"templates/index.tmpl",
+		"templates/_book_navigation.tmpl",
+		"templates/book_index.tmpl")
 	if err != nil {
 		panic(err)
 	}
@@ -270,9 +253,16 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Songbook:  *sbook,
 		PrevSong:  prev,
 		NextSong:  next,
+		Selected:  song.SongNumber,
 		IndexPage: index}
 
-	temp, err := template.ParseFiles("templates/index.tmpl", "templates/_song_select.tmpl", "templates/_book_select.tmpl", "templates/_display_song.tmpl", "templates/_song_select.tmpl", "templates/book_song.tmpl")
+	temp, err := template.ParseFiles(
+		"templates/index.tmpl",
+		"templates/_song_select.tmpl",
+		"templates/_book_select.tmpl",
+		"templates/_display_song.tmpl",
+		"templates/_book_navigation.tmpl",
+		"templates/book_song.tmpl")
 	if err != nil {
 		panic(err)
 	}

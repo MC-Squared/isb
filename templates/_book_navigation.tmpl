@@ -1,0 +1,50 @@
+{{ define "_book_nav_head" }}
+    <script>
+        $(document).ready(function() {
+            $('select').change(function() {
+                {{ if .Selected }}
+                    if ($(this).val() != '') {
+                        window.location.href = $(this).val();
+                    }
+                {{ else }}
+                    if ($(this).val() != '') {
+                        window.location.href = 'song/' + $(this).val();
+                    }
+                {{ end }}
+            });
+
+            $('#choose-num').select2({width: '80px'});
+            $('#choose-title').select2({width: 'resolve'});
+        });
+    </script>
+    <style>
+        .select2  {
+            margin-top: 0.5em;
+            margin-bottom: 0.75em;
+        }
+    </style>
+{{ end }}
+
+{{ define "_book_nav_content" }}
+    <h3>Jump to</h3>
+    {{ $current := .Selected }}
+    Number:
+    <select id='choose-num'>
+        {{ range .Songbook.Songs }}
+            <option value="{{ .SongNumber }}"
+            {{ if .MatchNumber $current }}
+                selected
+            {{ end }}
+            >{{ .SongNumber }}</option>
+        {{ end }}
+    </select><br>
+    Title: <select class='select-style' id='choose-title'>
+        {{ range .Songbook.Songs }}
+            <option value="{{ .SongNumber }}"
+            {{ if .MatchNumber $current }}
+                selected
+            {{ end }}
+            >{{ .Title }}</option>
+        {{ end }}
+    </select>
+{{ end }}

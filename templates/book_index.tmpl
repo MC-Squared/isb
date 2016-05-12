@@ -14,6 +14,7 @@
 
 {{ define "content" }}
     <h1 class='title'>{{ .Songbook.Title }}</h1>
+    <div class='error'>{{ .Error }}</div>
     {{ block "_book_nav_content" .}}
     {{ end }}
     {{ range .Songbook.Songs }}

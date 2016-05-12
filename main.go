@@ -98,6 +98,7 @@ type IndexPage struct {
 	ShowIndigo   bool
 	SelectedSong string
 	SelectedBook string
+	Error        string
 }
 
 func (i IndexPage) HasSong() bool {
@@ -126,6 +127,7 @@ type BookPage struct {
 var loadedSongs = make([]DisplayList, 0)
 var loadedBooks = make([]DisplayList, 0)
 var recent = make([]DisplayList, 0)
+var last_err = ""
 
 // indexHandler is an HTTP handler that serves the index page.
 func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -162,7 +164,10 @@ func getBasicIndexData() IndexPage {
 		Books:        loadedBooks,
 		ShowIndigo:   false,
 		SelectedSong: "",
-		SelectedBook: ""}
+		SelectedBook: "",
+		Error:        last_err}
+
+	last_err = ""
 
 	return index_data
 }
@@ -239,7 +244,15 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		prev = 0
 	}
 
-	song := sbook.Songs[n]
+	song, ok := sbook.Songs[n]
+
+	//Number does not exist in songbook
+	if !ok {
+		index := httprouter.CleanPath(r.URL.String() + "/../../index")
+		last_err = "Song '" + strconv.Itoa(n) + "' not found in songbook."
+		http.Redirect(w, r, index, 302)
+		return
+	}
 	song.Transpose = t
 
 	index := getBasicIndexData()
@@ -298,7 +311,10 @@ func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	data, err := loadSongFile(p.ByName("song"), t)
 	if err != nil {
 		log.Println(err)
-		http.NotFound(w, r)
+
+		home := httprouter.CleanPath(r.URL.String() + "/../..")
+		last_err = "Song '" + p.ByName("song") + "' not found."
+		http.Redirect(w, r, home, 302)
 		return
 	}
 

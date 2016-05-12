@@ -22,6 +22,11 @@ html{
     text-align: center;
 }
 
+.error {
+    text-align: center;
+    color: red;
+}
+
 .comment {
     /*font-style: italic;*/
     color: #AAAAAA;

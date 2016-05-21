@@ -16,26 +16,29 @@ type PDFFont struct {
 }
 
 var (
-	stanzaFont  = PDFFont{"Times", "", 18}
+	stanzaFont  = PDFFont{"Times", "", 12}
 	chordFont   = PDFFont{"Helvetica", "B", stanzaFont.Size * 0.85}
 	commentFont = PDFFont{"Times", "I", chordFont.Size}
 	titleFont   = PDFFont{"Helvetica", "B", stanzaFont.Size * 1.5}
 	sectionFont = commentFont
 )
-
 var stanzaIndent = stanzaFont.Size
 var stanzaNumberIndent = stanzaIndent / 2.0
 var chorusIndent = stanzaIndent * 2
 
-//var echoFont = PDFFont{stanzaFont.Family, "", stanzaFont.Size} DARK GREY
 //var songNumberFont = PDFFont{"Helvetica", "B", 15}
 //var tocFont = PDFFont{"Times", "", 12}
 //var tocSectionFont = PDFFont{"Times", "I", 12}
 
 func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
+	//Set up PDF object
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
+	pdf.SetDisplayMode("fullpage", "TwoColumnLeft")
+	pdf.SetTitle(song.Title, true)
+	pdf.SetAuthor("Indigo Song Book", false)
 
+	//Get font heights
 	stanzaHt := pdf.PointConvert(stanzaFont.Size)
 	chordHt := pdf.PointConvert(chordFont.Size)
 	commentHt := pdf.PointConvert(commentFont.Size)
@@ -43,23 +46,60 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 	sectionHt := pdf.PointConvert(sectionFont.Size)
 
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
-	_, height := pdf.GetPageSize()
-	_, top, _, bot := pdf.GetMargins()
+	width, height := pdf.GetPageSize()
+	left, top, right, bot := pdf.GetMargins()
+	//Subtract margins to get usable area
+	height -= (top + bot)
+	width -= (left + right)
 
-	height -= (top + bot) //Get usable height
+	crrntCol := 0
+	xMargin := left
+
+	//Column handling
+	//(Taken from fpdf_test.go:ExampleFpdf_SetLeftMargin())
+	setCol := func(col int) {
+		// Set position at a given column
+		crrntCol = col
+		xMargin = left + float64(col)*(width/2)
+	}
+
+	pdf.SetAcceptPageBreakFunc(func() bool {
+		// Method accepting or not automatic page break
+		if crrntCol < 1 {
+			// Go to next column
+			setCol(crrntCol + 1)
+			// Set ordinate to top
+			pdf.SetY(top)
+			// Keep on page
+			return false
+		}
+		// Go back to first column
+		setCol(0)
+		// Page break
+		return true
+	})
 
 	//Print title
 	setFont(pdf, titleFont)
 	pdf.WriteAligned(0, titleHt, song.Title, "C")
 	pdf.Ln(titleHt)
+
 	//Print section
 	if len(song.Section) > 0 {
 		setFont(pdf, sectionFont)
 		pdf.WriteAligned(0, sectionHt, song.Section, "C")
 		pdf.Ln(sectionHt)
 	}
-	println(pdf, tr, "", stanzaFont)
+	gotoSongStartY := func() {
+		y := top + titleHt + stanzaHt
+		if len(song.Section) > 0 {
+			y += sectionHt
+		}
 
+		pdf.SetY(y)
+	}
+
+	gotoSongStartY()
 	var w float64
 	//Print pre-song comments
 	printlnSlice(
@@ -69,17 +109,24 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 		commentFont)
 	pdf.Ln(commentHt)
 
+	//Print stanzas
 	for _, stanza := range song.Stanzas {
 		if (pdf.GetY() + stanza.getHeight(pdf)) >= height {
-			pdf.AddPage()
+			crrntCol++
+			if crrntCol > 1 {
+				crrntCol = 0
+				pdf.AddPage()
+			} else {
+
+			}
+			gotoSongStartY()
+			xMargin = left + float64(crrntCol)*(width/2)
 		}
 
-		pdf.SetX(stanzaIndent)
-		pdf.SetLeftMargin(stanzaIndent)
+		setXAndMargin(pdf, xMargin+stanzaIndent)
 
 		if stanza.IsChorus {
-			pdf.SetLeftMargin(chorusIndent)
-			pdf.SetX(chorusIndent)
+			setXAndMargin(pdf, xMargin+chorusIndent)
 		}
 
 		//Print pre-stanza comments
@@ -89,6 +136,7 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 			stanza.BeforeComments,
 			commentFont)
 
+		//Print stanza lines
 		for ind, line := range stanza.Lines {
 			last_pos := 0
 			last_chord_w := 0.0
@@ -107,6 +155,7 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 					pdf.Cell(w, chordHt, "")
 				}
 
+				//Prevent chords from crowding each other
 				if last_chord_x+last_chord_w > pdf.GetX() {
 					setFont(pdf, stanzaFont)
 					w = (last_chord_x + pdf.GetStringWidth("-")) - pdf.GetX()
@@ -131,11 +180,11 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 				!stanza.IsChorus {
 
 				num := strconv.Itoa(stanza.Number)
-				pdf.SetX(stanzaNumberIndent)
+				pdf.SetX(xMargin + stanzaNumberIndent)
 				pdf.Cell(stanzaIndent-stanzaNumberIndent, stanzaHt, tr(num))
 			}
 
-			//Do we need to print an echo portion?
+			//Print echo
 			if line.HasEcho() {
 				if line.EchoIndex > 0 {
 					str := line.Text[0:line.EchoIndex]
@@ -166,8 +215,7 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 		pdf.Ln(stanzaHt)
 	}
 
-	pdf.SetX(stanzaIndent)
-	pdf.SetLeftMargin(stanzaIndent)
+	setXAndMargin(pdf, xMargin+stanzaIndent)
 
 	//Print post-song comments
 	printlnSlice(
@@ -184,6 +232,11 @@ func WriteSongPDF(song *Song) (*bytes.Buffer, error) {
 	}
 
 	return buf, nil
+}
+
+func setXAndMargin(pdf *gofpdf.Fpdf, x float64) {
+	pdf.SetX(x)
+	pdf.SetLeftMargin(x)
 }
 
 func setFont(pdf *gofpdf.Fpdf, font PDFFont) {

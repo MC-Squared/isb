@@ -6,7 +6,7 @@
                 loc = '';
             {{ end }}
 
-            $('select').change(function() {
+            $('#choose-title').change(function() {
                 if ($(this).val() != '') {
                     window.location.href = loc + $(this).val();
                 }

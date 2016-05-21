@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -123,4 +124,33 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 			IndexPosition: index_pos,
 			Songs:         songs},
 		nil
+}
+
+func GetSongOrder(sbook *Songbook) (keys []int) {
+	keys = make([]int, len(sbook.Songs))
+	i := 0
+	for k := range sbook.Songs {
+		keys[i] = k
+		i++
+	}
+	sort.Sort(sort.IntSlice(keys))
+
+	return keys
+}
+
+func GetSongSlice(sbook *Songbook) (songs []Song) {
+	keys := GetSongOrder(sbook)
+	songs = make([]Song, len(sbook.Songs))
+
+	ind := 0
+	for _, k := range keys {
+		songs[ind] = sbook.Songs[k]
+		ind++
+	}
+
+	return songs
+}
+
+func (sbook Songbook) Link() string {
+	return sbook.Filename[0 : len(sbook.Filename)-9]
 }

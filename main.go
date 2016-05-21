@@ -38,7 +38,8 @@ func main() {
 	r.GET("/index.php", indexHandler)
 	r.GET("/index.html", indexHandler)
 	r.GET("/song/:song", songHandler)
-	r.GET("/pdf/:song", pdfHandler)
+	r.GET("/pdf/song/:song", songPdfHandler)
+	r.GET("/pdf/book/:book", bookPdfHandler)
 	r.GET("/book/:book/index", bookIndexHandler)
 	r.GET("/book/:book/song/:number", bookHandler)
 	r.ServeFiles("/css/*filepath", http.Dir("css"))
@@ -213,15 +214,10 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 	if err != nil {
 		fmt.Println(err)
+		http.NotFound(w, r)
 	}
 
-	keys := make([]int, len(sbook.Songs))
-	i := 0
-	for k := range sbook.Songs {
-		keys[i] = k
-		i++
-	}
-	sort.Sort(sort.IntSlice(keys))
+	keys := GetSongOrder(sbook)
 
 	prev := n
 	next := n
@@ -337,7 +333,7 @@ func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 }
 
-func pdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func songPdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var transpose = r.FormValue("transpose")
 	if len(transpose) == 0 {
 		transpose = "0"
@@ -356,6 +352,36 @@ func pdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+
+	// stream straight to client(browser)
+	w.Header().Set("Content-type", "application/pdf")
+
+	if _, err := pdf.WriteTo(w); err != nil {
+		fmt.Fprintf(w, "%s", err)
+	}
+
+	w.Write([]byte("PDF Generated"))
+}
+
+func bookPdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	sbook, err := ParseSongbookFile(books_root+"/"+p.ByName("book")+".songlist", songs_root)
+
+	if err != nil {
+		log.Println(err)
+		http.NotFound(w, r)
+		return
+	}
+
+	pdf, err := WriteBookPDF(sbook)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if pdf == nil {
+		return
 	}
 
 	// stream straight to client(browser)

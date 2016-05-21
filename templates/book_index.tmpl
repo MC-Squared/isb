@@ -17,6 +17,8 @@
     <div class='error'>{{ .Error }}</div>
     {{ block "_book_nav_content" .}}
     {{ end }}
+    <span class='link'><a href='/pdf/book/{{ .Songbook.Link }}'>Get PDF Version</a></span>
+    <br>
     {{ range .Songbook.Songs }}
         <span class='link'><a href='song/{{ .SongNumber }}'>{{ .SongNumber }} {{ .Title }}</a></span>
     {{ end }}

@@ -21,8 +21,10 @@ var (
 	commentFont    = PDFFont{"Times", "I", chordFont.Size}
 	titleFont      = PDFFont{"Helvetica", "B", stanzaFont.Size * 1.5}
 	sectionFont    = commentFont
+	//tocFont = stanzaFont
+	indexFont = PDFFont{"Helvetica", "", stanzaFont.Size * 1.25}
 )
-var stanzaIndent = stanzaFont.Size
+var stanzaIndent = stanzaFont.Size * 0.75
 var stanzaNumberIndent = stanzaIndent / 2.0
 var chorusIndent = stanzaIndent * 2
 
@@ -38,10 +40,27 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 	//Print title
 	setFont(pdf, titleFont)
 	pdf.WriteAligned(0, titleFont.Height(pdf), sbook.Title, "C")
-	pdf.Ln(titleFont.Height(pdf))
+	pdf.Ln(titleFont.Height(pdf) + stanzaFont.Height(pdf))
 
+	//Print index
+	songLinks := make(map[int]int, 0)
+	setFont(pdf, indexFont)
+	pdf.SetTextColor(0, 0, 255)
+	lineHt := indexFont.Height(pdf) * 1.5
 	for _, song := range GetSongSlice(sbook) {
+		link := pdf.AddLink()
+		pdf.SetFont("", "U", 0)
 
+		pdf.WriteLinkID(lineHt, strconv.Itoa(song.SongNumber), link)
+		pdf.SetFont("", "", 0)
+		pdf.Write(lineHt, "   ")
+		//		pdf.Cell(5.0, 50.0 /*indexFont.Height(pdf)*2*/, "X")
+
+		songLinks[song.SongNumber] = link
+	}
+	pdf.SetTextColor(0, 0, 0)
+	newPage(pdf)
+	for _, song := range GetSongSlice(sbook) {
 		y := pdf.GetY()
 		//two-column songs must start on col 0
 		if song.getHeight(pdf) > height && y > getSongStartY(pdf, false) {
@@ -50,6 +69,7 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 			nextCol(pdf)
 		}
 
+		pdf.SetLink(songLinks[song.SongNumber], 0, -1)
 		setXAndMargin(pdf, xMargin)
 		println(pdf, tr, strconv.Itoa(song.SongNumber), songNumberFont)
 		y = printSong(pdf, &song)

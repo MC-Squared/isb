@@ -7,11 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"io/ioutil"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -46,8 +46,20 @@ func main() {
 		return
 	}
 
-	filepath.Walk(songs_root, loadSongs)
-	filepath.Walk(books_root, loadBooks)
+	//Load songs and books
+	err = loadSongs(songs_root)
+	if err != nil {
+		fmt.Println("Error loading songs")
+		fmt.Println(err)
+		return
+	}
+
+	err = loadBooks(books_root)
+	if err != nil {
+		fmt.Println("Error loading books")
+		fmt.Println(err)
+		return
+	}
 
 	fmt.Printf("%d Songs loaded.\n", len(loadedSongs))
 	fmt.Printf("%d Books loaded.\n", len(loadedBooks))
@@ -418,36 +430,45 @@ func bookPdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 	w.Write([]byte("PDF Generated"))
 }
 
-func loadSongs(path string, f os.FileInfo, err error) error {
-	if f.IsDir() {
-		return nil
-	}
-
-	if strings.HasSuffix(strings.ToLower(f.Name()), ".song") {
-		song, err := ParseSongFile(songs_root+"/"+f.Name(), 0)
-		link := song.Filename[0 : len(song.Filename)-len(".song")]
-		loadedSongs = append(loadedSongs, DisplayList{Link: link, Title: song.Title})
-
+func loadSongs(path string) error {
+	song_files, err := ioutil.ReadDir(songs_root)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	for _, f := range song_files {
+		if !f.IsDir() && strings.HasSuffix(strings.ToLower(f.Name()), ".song") {
+			song, err := ParseSongFile(songs_root+"/"+f.Name(), 0)
+			if err != nil {
+				return err
+			}
+
+			link := song.Filename[0 : len(song.Filename)-len(".song")]
+			loadedSongs = append(loadedSongs, DisplayList{Link: link, Title: song.Title})
+		}
+	}
+
+	return err
 }
 
-func loadBooks(path string, f os.FileInfo, err error) error {
-	if f.IsDir() {
-		return nil
-	}
-
-	if strings.HasSuffix(strings.ToLower(f.Name()), ".songlist") {
-		book, err := ParseSongbookFile(books_root+"/"+f.Name(), songs_root)
-		link := book.Filename[0:len(book.Filename)-len(".songlist")] + "/index"
-		loadedBooks = append(loadedBooks, DisplayList{Link: link, Title: book.Title})
-
+func loadBooks(path string) error {
+	book_files, err := ioutil.ReadDir(books_root)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	for _, f := range book_files {
+		if !f.IsDir() && strings.HasSuffix(strings.ToLower(f.Name()), ".songlist") {
+			book, err := ParseSongbookFile(books_root+"/"+f.Name(), songs_root)
+			if err != nil {
+				return err
+			}
+			link := book.Filename[0:len(book.Filename)-len(".songlist")] + "/index"
+			loadedBooks = append(loadedBooks, DisplayList{Link: link, Title: book.Title})
+		}
+	}
+
+	return err
 }
 
 // readLines reads a whole file into memory

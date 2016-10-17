@@ -22,6 +22,19 @@ var (
 )
 
 func main() {
+	//basic sanity check
+	_, err := os.Stat(songs_root)
+	if os.IsNotExist(err) {
+		fmt.Printf("Error: Songs path (%s) does not exist.\n", songs_root)
+		return
+	}
+
+	_, err = os.Stat(books_root)
+	if os.IsNotExist(err) {
+		fmt.Printf("Error: Books path (%s) does not exist.\n", books_root)
+		return
+	}
+
 	filepath.Walk(songs_root, loadSongs)
 	filepath.Walk(books_root, loadBooks)
 

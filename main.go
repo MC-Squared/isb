@@ -22,6 +22,17 @@ var (
 )
 
 func main() {
+
+	//Follow symlinks if applicable
+	link, _ := os.Readlink(songs_root)
+	if link != "" {
+		songs_root = link
+	}
+	link, _ = os.Readlink(books_root)
+	if link != "" {
+		books_root = link
+	}
+
 	//basic sanity check
 	_, err := os.Stat(songs_root)
 	if os.IsNotExist(err) {
@@ -408,9 +419,7 @@ func bookPdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 }
 
 func loadSongs(path string, f os.FileInfo, err error) error {
-	if f.IsDir() && f.Name() != songs_root[2:] {
-		return filepath.SkipDir
-	} else if f.IsDir() {
+	if f.IsDir() {
 		return nil
 	}
 
@@ -426,9 +435,7 @@ func loadSongs(path string, f os.FileInfo, err error) error {
 }
 
 func loadBooks(path string, f os.FileInfo, err error) error {
-	if f.IsDir() && f.Name() != books_root[2:] {
-		return filepath.SkipDir
-	} else if f.IsDir() {
+	if f.IsDir() {
 		return nil
 	}
 

@@ -64,3 +64,16 @@ Filled with His [D]life I’ll [G]be.
 The tree the glorious Christ does show
 ...
 ```
+
+## Echo
+`{echo: <echo text>}`
+
+Used to indicate that part of a line is sung as an echo (or is optional).
+When printed the echo text will be slightly lighter in colour (i.e. grey).
+Note: Echo tags can be inline (as in example below) or on their own line.
+Only one echo tag can be used per-line, and no text should come after the tag on the same line.
+
+Example:
+```
+And the bread {echo: and the bread}
+```

@@ -28,10 +28,6 @@ var stanzaIndent = stanzaFont.Size * 0.75
 var stanzaNumberIndent = stanzaIndent / 2.0
 var chorusIndent = stanzaIndent * 2
 
-//var
-//var tocFont = PDFFont{"Times", "", 12}
-//var tocSectionFont = PDFFont{"Times", "I", 12}
-
 func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 	//Set up PDF object
 	pdf := initPDF(sbook.Title)
@@ -54,8 +50,6 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 		pdf.WriteLinkID(lineHt, strconv.Itoa(song.SongNumber), link)
 		pdf.SetFont("", "", 0)
 		pdf.Write(lineHt, "   ")
-		//		pdf.Cell(5.0, 50.0 /*indexFont.Height(pdf)*2*/, "X")
-
 		songLinks[song.SongNumber] = link
 	}
 	pdf.SetTextColor(0, 0, 0)
@@ -118,7 +112,6 @@ var (
 func printSong(pdf *gofpdf.Fpdf, song *Song) float64 {
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
-	var w float64
 	//Print pre-song comments
 	printlnSlice(
 		pdf,
@@ -148,71 +141,27 @@ func printSong(pdf *gofpdf.Fpdf, song *Song) float64 {
 
 		//Print stanza lines
 		for ind, line := range stanza.Lines {
-			last_pos := 0
-			last_chord_w := 0.0
-			last_chord_x := -1.0
-			adjust_w := 0.0
 
-			for _, chord := range line.Chords {
+			//List of lines to print, may grow if the
+			//line contents are too long to fit in a column
+			to_print := make([]Line, 0)
+			to_print = append(to_print, line)
+			//w := pdf.GetStringWidth(line.Text)
+			print_stanza_number := song.ShowStanzaNumbers && ind == 0 && stanza.ShowNumber && !stanza.IsChorus
 
-				//Put blank padding
-				//to position chords correctly
-				if chord.Position > 0 {
-					setFont(pdf, stanzaFont)
-					w = pdf.GetStringWidth(tr(line.Text[last_pos:chord.Position]))
-					w -= last_chord_w
-					w -= adjust_w
-					pdf.Cell(w, chordFont.Height(pdf), "")
+			//check width
+			for len(to_print) > 0 {
+				l := to_print[0]
+				to_print = to_print[1:]
+
+				if pdf.GetStringWidth(l.Text) > (width / 2) {
+					new_lines := l.SplitLine()
+					to_print = append(new_lines, to_print...)
+				} else {
+					printLine(pdf, tr, stanza, l, print_stanza_number)
+					print_stanza_number = false
 				}
-
-				//Prevent chords from crowding each other
-				if last_chord_x+last_chord_w > pdf.GetX() {
-					setFont(pdf, stanzaFont)
-					w = (last_chord_x + pdf.GetStringWidth("-")) - pdf.GetX()
-					adjust_w += w
-
-					pdf.Cell(w, chordFont.Height(pdf), "")
-				}
-
-				last_chord_w, _ = print(pdf, tr, chord.Text, chordFont)
-				last_pos = chord.Position
-				last_chord_x = pdf.GetX()
 			}
-			if stanza.HasChords() {
-				pdf.Ln(chordFont.Height(pdf))
-			}
-
-			setFont(pdf, stanzaFont)
-			//Print stanza number on the first line
-			if song.ShowStanzaNumbers &&
-				ind == 0 &&
-				stanza.ShowNumber &&
-				!stanza.IsChorus {
-
-				num := strconv.Itoa(stanza.Number)
-				pdf.SetX(xMargin + stanzaNumberIndent)
-				pdf.Cell(stanzaIndent-stanzaNumberIndent, stanzaFont.Height(pdf), tr(num))
-			}
-
-			//Print echo
-			if line.HasEcho() {
-				if line.EchoIndex > 0 {
-					str := line.Text[0:line.EchoIndex]
-					w = pdf.GetStringWidth(str)
-					pdf.Cell(w, stanzaFont.Height(pdf), tr(str))
-				}
-
-				pdf.SetTextColor(128, 128, 128)
-				str := line.Text[line.EchoIndex:len(line.Text)]
-
-				w = pdf.GetStringWidth(str)
-				pdf.Cell(w, stanzaFont.Height(pdf), tr(str))
-				pdf.SetTextColor(0, 0, 0)
-			} else {
-				w = pdf.GetStringWidth(line.Text)
-				pdf.Cell(w, stanzaFont.Height(pdf), tr(line.Text))
-			}
-			pdf.Ln(stanzaFont.Height(pdf))
 		}
 
 		//print post-stanza comments
@@ -236,6 +185,72 @@ func printSong(pdf *gofpdf.Fpdf, song *Song) float64 {
 	setXAndMargin(pdf, xMargin)
 
 	return pdf.GetY()
+}
+
+func printLine(pdf *gofpdf.Fpdf, tr func(string) string, stanza Stanza, line Line, stanza_number bool) {
+	last_pos := 0
+	last_chord_w := 0.0
+	last_chord_x := -1.0
+	adjust_w := 0.0
+	var w float64
+
+	for _, chord := range line.Chords {
+
+		//Put blank padding
+		//to position chords correctly
+		if chord.Position > 0 {
+			setFont(pdf, stanzaFont)
+			w = pdf.GetStringWidth(tr(line.Text[last_pos:chord.Position]))
+			w -= last_chord_w
+			w -= adjust_w
+			pdf.Cell(w, chordFont.Height(pdf), "")
+		}
+
+		//Prevent chords from crowding each other
+		if last_chord_x+last_chord_w > pdf.GetX() {
+			setFont(pdf, stanzaFont)
+			w = (last_chord_x + pdf.GetStringWidth("-")) - pdf.GetX()
+			adjust_w += w
+
+			pdf.Cell(w, chordFont.Height(pdf), "")
+		}
+
+		last_chord_w, _ = print(pdf, tr, chord.Text, chordFont)
+		last_pos = chord.Position
+		last_chord_x = pdf.GetX()
+	}
+	if stanza.HasChords() {
+		pdf.Ln(chordFont.Height(pdf))
+	}
+
+	setFont(pdf, stanzaFont)
+	//Print stanza number on the first line
+	if stanza_number {
+		num := strconv.Itoa(stanza.Number)
+		pdf.SetX(xMargin + stanzaNumberIndent)
+		pdf.Cell(stanzaIndent-stanzaNumberIndent, stanzaFont.Height(pdf), tr(num))
+	}
+
+	//Print echo
+	if line.HasEcho() {
+		if line.EchoIndex > 0 {
+			str := line.Text[0:line.EchoIndex]
+			w = pdf.GetStringWidth(str)
+			pdf.Cell(w, stanzaFont.Height(pdf), tr(str))
+		}
+
+		pdf.SetTextColor(128, 128, 128)
+		str := line.Text[line.EchoIndex:len(line.Text)]
+
+		w = pdf.GetStringWidth(str)
+		pdf.Cell(w, stanzaFont.Height(pdf), tr(str))
+		pdf.SetTextColor(0, 0, 0)
+	} else {
+		w = pdf.GetStringWidth(line.Text)
+		pdf.Cell(w, stanzaFont.Height(pdf), tr(line.Text))
+	}
+
+	pdf.Ln(stanzaFont.Height(pdf))
 }
 
 func WriteSongPDF(song *Song) (*bytes.Buffer, error) {

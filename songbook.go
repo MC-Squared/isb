@@ -98,6 +98,8 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 				num, err = strconv.Atoi(num_str)
 				if err == nil {
 					line = line[len(num_str)+1 : len(line)]
+				} else {
+					num = -1
 				}
 			}
 

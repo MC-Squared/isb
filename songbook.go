@@ -101,6 +101,13 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 				}
 			}
 
+			line = strings.TrimSpace(line)
+
+			//including '.song' extension is optional
+			if !strings.HasSuffix(line, ".song") {
+				line += ".song"
+			}
+
 			song, err := ParseSongFile(songs_root+"/"+line, 0)
 
 			if err != nil {

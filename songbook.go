@@ -89,6 +89,8 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 			}
 		}
 
+		line = strings.TrimSpace(line)
+
 		//ignore blank lines
 		if len(line) > 0 {
 			num := -1
@@ -102,8 +104,6 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 					num = -1
 				}
 			}
-
-			line = strings.TrimSpace(line)
 
 			//including '.song' extension is optional
 			if !strings.HasSuffix(line, ".song") {

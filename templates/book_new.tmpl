@@ -51,6 +51,13 @@
                 sel_songs[i] = $(item).text();
             });
 
+            var settings = {};
+            var form_settings = $('#settings').serializeArray();
+
+            for (var i in form_settings) {
+                settings[form_settings[i].name] = form_settings[i].value;
+            } 
+
             //sanity checks
             if ($('#name').val().length == 0) {
                 alert("You must enter a name for this songbook.");
@@ -65,7 +72,8 @@
             $.ajax({
                 data: {
                     'songs': JSON.stringify(sel_songs),
-                    name: $('#name').val()
+                    name: $('#name').val(),
+                    settings: JSON.stringify(settings)
                 },
                 type: 'POST'
             });
@@ -85,9 +93,17 @@ New Songbook:<br>
   <ul class="list" id="book-list">
   </ul>
 </div>
-<form>
+
+<form id='settings'>
 Name: <input name='name' id='name' type='text'>
-    
+    <div class='index-options'>
+        <input type='checkbox' name='fixed-order'>Fixed order<br>
+        Index position: <input type='radio' name='index-pos' value='start' checked>Start
+        <input type='radio' name='index-pos' value='end'>End
+        <input type='radio' name='index-pos' value='none'>None<br>
+        <input type='checkbox' name='use-chorus'>Include chorus in index<br>
+        <input type='checkbox' name='use-sections'>Use sections<br>
+    </div>    
 </form>
 
 <button onclick="submit()">Save</button>

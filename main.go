@@ -213,19 +213,48 @@ func getBasicIndexData() IndexPage {
 }
 
 func newBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	name := strings.TrimSpace(r.PostFormValue("name"))
+	raw_settings := r.PostFormValue("settings")
+	var settings map[string]string
+	_ = json.Unmarshal([]byte(raw_settings), &settings)
+
 	raw_songs := r.PostFormValue("songs")
 	var songs []string
 
 	_ = json.Unmarshal([]byte(raw_songs), &songs)
 
 	//open songbook file
+	name := strings.TrimSpace(settings["name"])
 	file, err := os.Create(books_root + "/" + name + ".songlist")
 	defer file.Close()
 
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+
+	//write out the settings
+	for i, k := range settings {
+		switch i {
+		case "name":
+			continue
+		case "fixed-order":
+			file.WriteString("{fixed_order}\n")
+			break
+		case "index-pos":
+			file.WriteString("{index_position: ")
+			file.WriteString(k)
+			file.WriteString("}\n")
+			break
+		case "use-chorus":
+			file.WriteString("{index_use_chorus}\n")
+			break
+		case "use-sections":
+			file.WriteString("{index_use_sections}\n")
+			break
+		default:
+			fmt.Println("Unknown book setting: ", i, " -> ", k)
+			break
+		}
 	}
 
 	for _, s := range songs {

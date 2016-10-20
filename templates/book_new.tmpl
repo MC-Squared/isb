@@ -36,6 +36,9 @@
                 {
                     sort: false,
                     group: 'songs',
+                    onMove: (function(evt) {
+                        songList.remove("title", evt.dragged.innerText);
+                    })
                 });
 
             el = document.getElementById('book-list');

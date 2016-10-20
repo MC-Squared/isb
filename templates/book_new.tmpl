@@ -1,0 +1,99 @@
+{{ template "index.tmpl" . }}
+
+{{ define "head" }}
+    {{ block "_book_nav_head" . }}
+    {{ end }}
+    <script src="/js/Sortable.min.js"></script>
+    <style>
+       .list {            
+            padding-bottom: 10px;
+            padding-top: 10px
+        }
+    </style>
+    <script>
+        $(document).ready(function() {
+            var options = {
+                valueNames: [ 'title' ],
+                page: 10,
+                item: '<li> <span class="title"></span></li>',
+                plugins: [
+                    ListFuzzySearch()
+                ]
+            };
+
+            var values = [
+                {{ range .Songs }}
+                    {
+                        title: {{ .Title }}
+                    },
+                {{ end }}
+            ];
+
+            var songList = new List('song-list', options, values);
+
+            var el = document.getElementById('list');
+            var sortable = new Sortable(el, 
+                {
+                    sort: false,
+                    group: 'songs',
+                });
+
+            el = document.getElementById('book-list');
+            sortable = new Sortable(el, 
+                {
+                    group: 'songs'
+                });
+        });
+
+        function submit() {
+            var sel_songs = [];
+            $('#book-list li').each(function(i, item) {
+                sel_songs[i] = $(item).text();
+            });
+
+            //sanity checks
+            if ($('#name').val().length == 0) {
+                alert("You must enter a name for this songbook.");
+                return;
+            }
+
+            if (sel_songs.length == 0) {
+                alert("You cannot save an empty songbook, add some songs first.")
+                return;
+            }
+
+            $.ajax({
+                data: {
+                    'songs': JSON.stringify(sel_songs),
+                    name: $('#name').val()
+                },
+                type: 'POST'
+            });
+        }
+    </script>
+{{ end }}
+
+{{ define "content" }}
+
+<div id="song-list">
+  <input class="fuzzy-search" placeholder="Search" />
+  <ul class="list" id="list"></ul>
+</div>
+<hr>
+New Songbook:<br>
+<div id="new-book-list">
+  <ul class="list" id="book-list">
+  </ul>
+</div>
+<form>
+Name: <input name='name' id='name' type='text'>
+    
+</form>
+
+<button onclick="submit()">Save</button>
+
+<script src="/js/list.min.js"></script>
+<script src="/js/list.fuzzysearch.min.js"></script>
+
+    <div class='error'>{{ .Error }}</div>
+{{ end }}

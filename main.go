@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"io/ioutil"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -76,11 +77,13 @@ func main() {
 	r.GET("/song/:song", songHandler)
 	r.GET("/pdf/song/:song", songPdfHandler)
 	r.GET("/pdf/book/:book", bookPdfHandler)
+	r.GET("/new-book/", newBookHandler)
 	r.GET("/book/:book/index", bookIndexHandler)
 	r.GET("/book/:book/song/:number", bookHandler)
 	r.ServeFiles("/css/*filepath", http.Dir("css"))
 	r.ServeFiles("/js/*filepath", http.Dir("js"))
 
+	r.POST("/new-book/", newBookPostHandler)
 	log.Fatal(http.ListenAndServe(":8090", r))
 
 }
@@ -207,6 +210,48 @@ func getBasicIndexData() IndexPage {
 	last_err = ""
 
 	return index_data
+}
+
+func newBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	name := strings.TrimSpace(r.PostFormValue("name"))
+	raw_songs := r.PostFormValue("songs")
+	var songs []string
+
+	_ = json.Unmarshal([]byte(raw_songs), &songs)
+
+	//open songbook file
+	file, err := os.Create(books_root + "/" + name + ".songlist")
+	defer file.Close()
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for _, s := range songs {
+		_, err = file.WriteString(strings.TrimSpace(s))
+		if err == nil {
+			_, err = file.WriteString("\n")
+		}
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+}
+
+func newBookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	temp, err := template.ParseFiles(
+		"templates/index.tmpl",
+		"templates/book_new.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := temp.ExecuteTemplate(w, "book_new.tmpl", getBasicIndexData()); err != nil {
+		log.Println(err)
+	}
 }
 
 func bookIndexHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

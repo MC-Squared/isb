@@ -63,7 +63,6 @@ func main() {
 	}
 
 	fmt.Printf("%d Songs loaded.\n", len(loadedSongs))
-	fmt.Printf("%d Books loaded.\n", len(loadedBooks))
 
 	//Sort lists by title
 	sort.Sort(ByTitle(loadedSongs))
@@ -225,7 +224,9 @@ func newBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	//open songbook file
 	name := strings.TrimSpace(settings["name"])
 	file, err := os.Create(books_root + "/" + name + ".songlist")
+
 	defer file.Close()
+	defer loadBooks(books_root)
 
 	if err != nil {
 		fmt.Println(err)
@@ -531,6 +532,8 @@ func loadBooks(path string) error {
 		return err
 	}
 
+	loadedBooks = make([]DisplayList, 0)
+
 	for _, f := range book_files {
 		if !f.IsDir() && strings.HasSuffix(strings.ToLower(f.Name()), ".songlist") {
 			book, err := ParseSongbookFile(books_root+"/"+f.Name(), songs_root)
@@ -541,6 +544,8 @@ func loadBooks(path string) error {
 			loadedBooks = append(loadedBooks, DisplayList{Link: link, Title: book.Title})
 		}
 	}
+
+	fmt.Printf("%d Books loaded.\n", len(loadedBooks))
 
 	return err
 }

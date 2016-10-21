@@ -146,6 +146,10 @@ func printSong(pdf *gofpdf.Fpdf, song *Song) float64 {
 			//line contents are too long to fit in a column
 			to_print := make([]Line, 0)
 			to_print = append(to_print, line)
+			offset := fonts.StanzaIndent
+			if stanza.IsChorus {
+				offset = fonts.ChorusIndent
+			}
 
 			print_stanza_number := song.ShowStanzaNumbers && ind == 0 && stanza.ShowNumber && !stanza.IsChorus
 
@@ -154,7 +158,7 @@ func printSong(pdf *gofpdf.Fpdf, song *Song) float64 {
 				l := to_print[0]
 				to_print = to_print[1:]
 
-				if pdf.GetStringWidth(l.Text) > (width / 2) {
+				if (pdf.GetStringWidth(l.Text) + offset) > (width / 2) {
 					new_lines := l.SplitLine()
 					to_print = append(new_lines, to_print...)
 				} else {

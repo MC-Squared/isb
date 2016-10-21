@@ -484,7 +484,7 @@ func bookPdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 		return
 	}
 
-	pdf, err := WriteBookPDF(sbook)
+	pdf, err := WriteBookPDFElectronic(sbook)
 
 	if err != nil {
 		fmt.Println(err)

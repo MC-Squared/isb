@@ -72,7 +72,6 @@ var printFonts = BookFonts{
 func WriteBookPDFElectronic(sbook *Songbook) (*bytes.Buffer, error) {
 	//Set up PDF object
 	pdf := initPDF(sbook.Title)
-	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
 	printTitle(pdf, sbook.Title, electronicFonts)
 
@@ -105,9 +104,6 @@ func WriteBookPDFElectronic(sbook *Songbook) (*bytes.Buffer, error) {
 		pdf.WriteLinkID(lineHt, "Index", link)
 		pdf.SetTextColor(0, 0, 0)
 
-		setXAndMargin(pdf, xMargin)
-		println(pdf, tr, strconv.Itoa(song.SongNumber), electronicFonts.SongNumber)
-
 		_ = printSong(pdf, &song, electronicFonts, false)
 	}
 
@@ -121,46 +117,25 @@ func WriteBookPDFElectronic(sbook *Songbook) (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-/*
 func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 	//Set up PDF object
 	pdf := initPDF(sbook.Title)
-	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
-	//Print title
-	setFont(pdf, titleFont)
-	pdf.WriteAligned(0, titleFont.Height(pdf), sbook.Title, "C")
-	pdf.Ln(titleFont.Height(pdf) + stanzaFont.Height(pdf))
+	printTitle(pdf, sbook.Title, printFonts)
 
-	//Print index
-	songLinks := make(map[int]int, 0)
-	setFont(pdf, indexFont)
-	pdf.SetTextColor(0, 0, 255)
-	lineHt := indexFont.Height(pdf) * 1.5
-	for _, song := range GetSongSlice(sbook) {
-		link := pdf.AddLink()
-		pdf.SetFont("", "U", 0)
-
-		pdf.WriteLinkID(lineHt, strconv.Itoa(song.SongNumber), link)
-		pdf.SetFont("", "", 0)
-		pdf.Write(lineHt, "   ")
-		songLinks[song.SongNumber] = link
-	}
-	pdf.SetTextColor(0, 0, 0)
-	newPage(pdf)
 	for _, song := range GetSongSlice(sbook) {
 		y := pdf.GetY()
+
 		//two-column songs must start on col 0
-		if song.getHeight(pdf) > height && y > getSongStartY(pdf, false) {
-			newPage(pdf)
-		} else if y+song.getHeight(pdf) > height {
-			nextCol(pdf)
+		if y > getSongStartY(pdf, false, printFonts) {
+			if song.getHeight(pdf, printFonts) > height {
+				newPage(pdf, printFonts)
+			} else if crrntCol > 0 && y+song.getHeight(pdf, printFonts) > height {
+				nextCol(pdf, printFonts)
+			}
 		}
 
-		pdf.SetLink(songLinks[song.SongNumber], 0, -1)
-		setXAndMargin(pdf, xMargin)
-		println(pdf, tr, strconv.Itoa(song.SongNumber), songNumberFont)
-		y = printSong(pdf, &song)
+		y = printSong(pdf, &song, printFonts, true)
 	}
 
 	buf := new(bytes.Buffer)
@@ -171,7 +146,7 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 	}
 
 	return buf, nil
-}*/
+}
 
 func initPDF(title string) *gofpdf.Fpdf {
 	//Set up PDF object
@@ -202,6 +177,11 @@ func printTitle(pdf *gofpdf.Fpdf, title string, fonts BookFonts) {
 	pdf.Ln(fonts.Title.Height(pdf) + fonts.Stanza.Height(pdf))
 }
 
+func printSongNumber(pdf *gofpdf.Fpdf, tr func(string) string, number int, fonts BookFonts) {
+	setXAndMargin(pdf, xMargin)
+	println(pdf, tr, strconv.Itoa(number), fonts.SongNumber)
+}
+
 var (
 	crrntCol    = 0
 	xMargin     = 0.0
@@ -214,13 +194,8 @@ var (
 func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) float64 {
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 
-	//Print pre-song comments
-	printlnSlice(
-		pdf,
-		tr,
-		song.BeforeComments,
-		fonts.Comment)
-	pdf.Ln(fonts.Comment.Height(pdf))
+	//flag so we don't print song number on the wrong page/column
+	var song_started = false
 
 	//Print stanzas
 	for _, stanza := range song.Stanzas {
@@ -230,6 +205,20 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 			} else {
 				newPage(pdf, fonts)
 			}
+		}
+
+		if !song_started {
+			printSongNumber(pdf, tr, song.SongNumber, fonts)
+
+			//Print pre-song comments
+			printlnSlice(
+				pdf,
+				tr,
+				song.BeforeComments,
+				fonts.Comment)
+			pdf.Ln(fonts.Comment.Height(pdf))
+
+			song_started = true
 		}
 
 		setXAndMargin(pdf, xMargin+fonts.StanzaIndent)

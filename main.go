@@ -76,13 +76,13 @@ func main() {
 	r.GET("/song/:song", songHandler)
 	r.GET("/pdf/song/:song", songPdfHandler)
 	r.GET("/pdf/book/:book", bookPdfHandler)
-	r.GET("/new-book/", newBookHandler)
 	r.GET("/book/:book/index", bookIndexHandler)
+	r.GET("/book/:book/edit", editBookHandler)
 	r.GET("/book/:book/song/:number", bookHandler)
 	r.ServeFiles("/css/*filepath", http.Dir("css"))
 	r.ServeFiles("/js/*filepath", http.Dir("js"))
 
-	r.POST("/new-book/", newBookPostHandler)
+	r.POST("/book/:book/edit", editBookPostHandler)
 	log.Fatal(http.ListenAndServe(":8090", r))
 
 }
@@ -211,7 +211,7 @@ func getBasicIndexData() IndexPage {
 	return index_data
 }
 
-func newBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func editBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	raw_settings := r.PostFormValue("settings")
 	var settings map[string]string
 	_ = json.Unmarshal([]byte(raw_settings), &settings)
@@ -271,15 +271,26 @@ func newBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Par
 	}
 }
 
-func newBookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func editBookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	temp, err := template.ParseFiles(
 		"templates/index.tmpl",
-		"templates/book_new.tmpl")
+		"templates/book_edit.tmpl")
 	if err != nil {
 		panic(err)
 	}
 
-	if err := temp.ExecuteTemplate(w, "book_new.tmpl", getBasicIndexData()); err != nil {
+	sbook, err := ParseSongbookFile(books_root+"/"+p.ByName("book")+".songlist", songs_root)
+	var pBook Songbook
+	if err == nil {
+		pBook = *sbook
+	}
+
+	book_data := &BookPage{
+		Songbook:  pBook,
+		IndexPage: getBasicIndexData(),
+	}
+
+	if err := temp.ExecuteTemplate(w, "book_edit.tmpl", book_data); err != nil {
 		log.Println(err)
 	}
 }

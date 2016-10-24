@@ -21,6 +21,18 @@ type Songbook struct {
 	Songs         map[int]Song
 }
 
+func (sb Songbook) IndexAtStart() bool {
+	return sb.IndexPosition == IndexStart
+}
+
+func (sb Songbook) IndexAtEnd() bool {
+	return sb.IndexPosition == IndexEnd
+}
+
+func (sb Songbook) NoIndex() bool {
+	return sb.IndexPosition == IndexNone
+}
+
 const (
 	IndexNone  = 0
 	IndexStart = 1

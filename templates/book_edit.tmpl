@@ -78,7 +78,11 @@
                     name: $('#name').val(),
                     settings: JSON.stringify(settings)
                 },
-                type: 'POST'
+                type: 'POST',
+                success: function() {
+                    window.location.href = "index"
+                    //console.log()
+                },
             });
         }
     </script>
@@ -94,18 +98,21 @@
 New Songbook:<br>
 <div id="new-book-list">
   <ul class="list" id="book-list">
+  {{ range .Songbook.Songs }}
+    <li>{{ .Title }}</li>
+  {{ end }}
   </ul>
 </div>
 
 <form id='settings'>
-Name: <input name='name' id='name' type='text'>
+Name: <input name='name' id='name' type='text' value='{{ .Songbook.Title }}'>
     <div class='index-options'>
-        <input type='checkbox' name='fixed-order'>Fixed order<br>
-        Index position: <input type='radio' name='index-pos' value='start' checked>Start
-        <input type='radio' name='index-pos' value='end'>End
-        <input type='radio' name='index-pos' value='none'>None<br>
-        <input type='checkbox' name='use-chorus'>Include chorus in index<br>
-        <input type='checkbox' name='use-sections'>Use sections<br>
+        <input type='checkbox' name='fixed-order' {{ if .Songbook.FixedOrder }} checked {{ end }}>Fixed order<br>
+        Index position: <input type='radio' name='index-pos' value='start' {{ if .Songbook.IndexAtStart }} checked {{ end }} >Start
+        <input type='radio' name='index-pos' value='end' {{ if .Songbook.IndexAtEnd }} checked {{ end }} >End
+        <input type='radio' name='index-pos' value='none' {{ if .Songbook.NoIndex }} checked {{ end }} >None<br>
+        <input type='checkbox' name='use-chorus' {{ if .Songbook.IndexChorus }} checked {{ end }} >Include chorus in index<br>
+        <input type='checkbox' name='use-sections' {{ if .Songbook.UseSection }} checked {{ end }}>Use sections<br>
     </div>    
 </form>
 

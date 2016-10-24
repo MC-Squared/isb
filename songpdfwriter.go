@@ -34,7 +34,7 @@ var eStanzaSize = 24.0
 var pStanzaSize = 12.0
 
 var electronicFonts = BookFonts{
-	SongNumber: PDFFont{"Helvetica", "B", eStanzaSize * 1.0},
+	SongNumber: PDFFont{"Helvetica", "B", eStanzaSize * 1.5},
 	Title:      PDFFont{"Helvetica", "B", eStanzaSize * 1.0},
 	Index:      PDFFont{"Helvetica", "", eStanzaSize * 1.0},
 

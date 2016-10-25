@@ -83,6 +83,7 @@ func main() {
 	r.ServeFiles("/js/*filepath", http.Dir("js"))
 
 	r.POST("/book/:book/edit", editBookPostHandler)
+	r.DELETE("/book/:book/edit", editBookDeleteHandler)
 	log.Fatal(http.ListenAndServe(":8090", r))
 
 }
@@ -209,6 +210,19 @@ func getBasicIndexData() IndexPage {
 	last_err = ""
 
 	return index_data
+}
+
+func editBookDeleteHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	//find songbook file
+	name := strings.TrimSpace(p.ByName("book"))
+	err := os.Remove(books_root + "/" + name + ".songlist")
+
+	defer loadBooks(books_root)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 func editBookPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

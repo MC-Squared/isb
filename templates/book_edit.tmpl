@@ -80,11 +80,36 @@
                 },
                 type: 'POST',
                 success: function() {
-                    window.location.href = "index"
-                    //console.log()
+                    window.location.href = "index";
                 },
             });
         }
+
+        function del() {
+            bootbox.confirm({
+                message: "Permanently delete this songbook?",
+                buttons: {
+                    confirm: {
+                        label: 'Yes',
+                        className: 'btn-success'
+                    },
+                    cancel: {
+                        label: 'No',
+                        className: 'btn-danger'
+                    }
+                },
+                callback: function (result) {
+                    if (result) {
+                        $.ajax({
+                            type: 'DELETE',
+                            success: function() {
+                                window.location.href = "/";
+                            },
+                        });
+                    }
+                }
+            });
+        }   
     </script>
 {{ end }}
 
@@ -117,9 +142,13 @@ Name: <input name='name' id='name' type='text' value='{{ .Songbook.Title }}'>
 </form>
 
 <button onclick="submit()">Save</button>
+<br>
+<br>
+<button onclick="del()">Delete Songbook</button>
 
 <script src="/js/list.min.js"></script>
 <script src="/js/list.fuzzysearch.min.js"></script>
+<script src="/js/bootbox.min.js"></script>
 
     <div class='error'>{{ .Error }}</div>
 {{ end }}

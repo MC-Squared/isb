@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -75,7 +76,7 @@ func main() {
 	r.GET("/index.html", indexHandler)
 	r.GET("/song/:song", songHandler)
 	r.GET("/pdf/song/:song", songPdfHandler)
-	r.GET("/pdf/book/:book", bookPdfHandler)
+	r.GET("/pdf/book/:book/version/:version", bookPdfHandler)
 	r.GET("/book/:book/index", bookIndexHandler)
 	r.GET("/book/:book/edit", editBookHandler)
 	r.GET("/book/:book/song/:number", bookHandler)
@@ -509,7 +510,14 @@ func bookPdfHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 		return
 	}
 
-	pdf, err := WriteBookPDFElectronic(sbook)
+	var pdf *bytes.Buffer
+
+	ver := p.ByName("version")
+	if ver == "electronic" {
+		pdf, err = WriteBookPDFElectronic(sbook)
+	} else {
+		pdf, err = WriteBookPDF(sbook)
+	}
 
 	if err != nil {
 		fmt.Println(err)

@@ -35,7 +35,7 @@
         {{ range $line := .Lines }}
             {{ if $print_chords }}
                 {{- range $chord := .Chords -}}
-                    <span class='hidden'>
+                    <span class='chord-space'>
                         {{- $line.PreChordText $chord -}}</span><span class='chord'>{{- .Text -}}</span>
                 {{- end -}}
                 <br>

@@ -6,16 +6,8 @@ html{
   background-size: cover;
 }
 
-.wrapper {
-    width: 400px;
-    margin: 1em auto;
-    padding: 10px 10px; /*the second one is horizontal padding*/
-    display: block;
-    background-color: white;
-
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
-    border-radius: 10px;
+body {
+    background: transparent;
 }
 
 .title {
@@ -55,13 +47,18 @@ html{
     color: grey;
 }
 
-.hidden {
+.chord-space {
     visibility: hidden;
+}
+
+.select-style {
+    width: 100%;
 }
 
 #song-select-div, #book-select-div {
     text-align: center;
     margin-bottom: 8px;
+    width: 100%;
 }
 
 .button {
@@ -76,7 +73,9 @@ html{
     margin: 1em 0 0 0;
 }
 
-body {
-    font-family: "Arial", sans-serif;
-    color: #332200;
+.center {
+    background: white;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
 }

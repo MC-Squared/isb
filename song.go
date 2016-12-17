@@ -311,8 +311,9 @@ func (song Song) String() string {
 	for _, s := range song.Stanzas {
 		if s.IsChorus {
 			buffer.WriteString("---CHORUS--\n")
+		} else {
+			buffer.WriteString(fmt.Sprintf("STANZA: %d\n", s.Number))
 		}
-		buffer.WriteString(fmt.Sprintf("STANZA: %d\n", s.Number))
 		for _, l := range s.Lines {
 			buffer.WriteString(fmt.Sprintf("%s\n", l.Text))
 		}

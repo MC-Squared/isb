@@ -1,15 +1,15 @@
 {{ with .Song }}
     <form action=''>
         <input class='button' type='submit' value='Capo'>
-        <input 
-            type='text' 
-            name='transpose' 
-            size='2' 
+        <input
+            type='text'
+            name='transpose'
+            size='2'
             style='height: 25px; text-align:center;'
-            value='{{ .Transpose }}'>
+            value='{{ .GetTranspose }}'>
     </form>
     <br>
-    <a href='/pdf/song/{{ .Link }}?transpose={{ .Transpose }}'>Get PDF Version</a>
+    <a href='/pdf/song/{{ .Link }}?transpose={{ .GetTranspose }}'>Get PDF Version</a>
     <br>
     <h1 class='title'>{{ .Title }}</h1>
     <span class='section'>{{ .Section }}</span><br>
@@ -31,12 +31,12 @@
         {{ end }}
 
         {{ $print_chords := .HasChords }}
-        
+
         {{ range $line := .Lines }}
             {{ if $print_chords }}
                 {{- range $chord := .Chords -}}
                     <span class='chord-space'>
-                        {{- $line.PreChordText $chord -}}</span><span class='chord'>{{- .Text -}}</span>
+                        {{- $line.PreChordText $chord -}}</span><span class='chord'>{{- .GetText -}}</span>
                 {{- end -}}
                 <br>
             {{ end }}

@@ -1,8 +1,13 @@
 package main
 
 type Chord struct {
-	Text     string
-	Position int
+	text      string
+	Position  int
+	Transpose int
+}
+
+func (chord Chord) GetText() string {
+	return transposeKey(chord.text, chord.Transpose)
 }
 
 var scales = map[string]int{

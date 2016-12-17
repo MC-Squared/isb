@@ -176,7 +176,7 @@ var pre_chord_test = []struct {
 	{
 		Line{
 			Text:   "Test string with long chord text chord",
-			Chords: []Chord{Chord{Position: 10, Text: "Text-that-is-too-long"}, Chord{Position: 20}},
+			Chords: []Chord{Chord{Position: 10, text: "Text-that-is-too-long"}, Chord{Position: 20}},
 		},
 		Chord{
 			Position: 20,

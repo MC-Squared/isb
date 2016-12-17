@@ -21,7 +21,7 @@ type Song struct {
 	ShowStanzaNumbers bool
 	BeforeComments    []string
 	AfterComments     []string
-	Transpose         int
+	transpose         int
 }
 
 func ParseSongFile(filename string, transpose int) (*Song, error) {
@@ -188,9 +188,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 				chord_len += pos[1] - pos[0]
 				position := pos[1] - chord_len
 
-				chord_text = transposeKey(chord_text, transpose)
-
-				chords = append(chords, Chord{Text: chord_text, Position: position})
+				chords = append(chords, Chord{text: chord_text, Position: position, Transpose: transpose})
 			}
 
 			//remove all chord markers
@@ -274,12 +272,29 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 			Stanzas:           stanzas,
 			BeforeComments:    song_before_comments,
 			AfterComments:     song_after_comments,
-			Transpose:         transpose},
+			transpose:         transpose},
 		nil
 }
 
 func parseCommand(command string) string {
 	return strings.TrimSpace(command[strings.Index(command, ":")+1 : strings.Index(command, "}")])
+}
+
+func (song Song) GetTranspose() int {
+	return song.transpose
+}
+
+func (song *Song) Transpose(change_by int) {
+	song.transpose = change_by
+
+	for _, s := range song.Stanzas {
+		for _, l := range s.Lines {
+			//index range here because we are modifying the Chord
+			for i := range l.Chords {
+				l.Chords[i].Transpose = change_by
+			}
+		}
+	}
 }
 
 func (song Song) String() string {

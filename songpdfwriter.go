@@ -314,7 +314,7 @@ func printLine(pdf *gofpdf.Fpdf, tr func(string) string, stanza Stanza, line Lin
 			pdf.Cell(w, fonts.Chord.Height(pdf), "")
 		}
 
-		last_chord_w, _ = print(pdf, tr, chord.Text, fonts.Chord)
+		last_chord_w, _ = print(pdf, tr, chord.GetText(), fonts.Chord)
 		last_pos = chord.Position
 		last_chord_x = pdf.GetX()
 	}

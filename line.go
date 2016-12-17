@@ -54,7 +54,7 @@ func (line Line) PreChordText(chord Chord) string {
 		return line.Text[0:chord.Position]
 	}
 
-	pos := line.Chords[ind].Position + len(line.Chords[ind].Text)
+	pos := line.Chords[ind].Position + len(line.Chords[ind].GetText())
 
 	//if the chord text is long,
 	//We might have a problem here
@@ -133,7 +133,7 @@ func (line Line) splitLineAt(split int) []Line {
 			if c.Position <= len(text1) {
 				chords1 = append(chords1, c)
 			} else {
-				chords2 = append(chords2, Chord{c.Text, c.Position - len(text1)})
+				chords2 = append(chords2, Chord{c.GetText(), c.Position - len(text1), c.Transpose})
 			}
 		}
 	}

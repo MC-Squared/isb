@@ -386,11 +386,11 @@ func bookHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		http.Redirect(w, r, index, 302)
 		return
 	}
-	song.Transpose = t
 
 	index := getBasicIndexData()
 	index.SelectedSong = song.Title
 	index.SelectedBook = sbook.Title
+	song.Transpose(t)
 
 	updateRecent(song.Link(), song.Title)
 

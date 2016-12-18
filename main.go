@@ -23,6 +23,10 @@ var (
 	books_root = "./books"
 )
 
+func getSongFilename(file string) string {
+	return songs_root + "/" + file + ".song"
+}
+
 func main() {
 
 	//Follow symlinks if applicable
@@ -75,6 +79,7 @@ func main() {
 	r.GET("/index.php", indexHandler)
 	r.GET("/index.html", indexHandler)
 	r.GET("/song/:song", songHandler)
+	r.GET("/song/:song/edit", editSongHandler)
 	r.GET("/pdf/song/:song", songPdfHandler)
 	r.GET("/pdf/book/:book/version/:version", bookPdfHandler)
 	r.GET("/book/:book/index", bookIndexHandler)
@@ -83,6 +88,7 @@ func main() {
 	r.ServeFiles("/css/*filepath", http.Dir("css"))
 	r.ServeFiles("/js/*filepath", http.Dir("js"))
 
+	r.POST("/song/:song/edit", editSongPostHandler)
 	r.POST("/book/:book/edit", editBookPostHandler)
 	r.DELETE("/book/:book/edit", editBookDeleteHandler)
 	log.Fatal(http.ListenAndServe(":8090", r))
@@ -165,6 +171,12 @@ type BookPage struct {
 	IndexPage
 }
 
+type EditSongPage struct {
+	Title   string
+	Content string
+	IndexPage
+}
+
 var loadedSongs = make([]DisplayList, 0)
 var loadedBooks = make([]DisplayList, 0)
 var recent = make([]DisplayList, 0)
@@ -186,7 +198,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func loadSongFile(title string, transpose int) (*Song, error) {
-	filename := songs_root + "/" + title + ".song"
+	filename := getSongFilename(title)
 
 	song, err := ParseSongFile(filename, transpose)
 
@@ -434,6 +446,46 @@ func updateRecent(link string, title string) {
 	}
 }
 
+func editSongPostHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	raw_content := r.PostFormValue("content")
+	var content string
+
+	_ = json.Unmarshal([]byte(raw_content), &content)
+
+	filename := getSongFilename(p.ByName("song"))
+
+	err := ioutil.WriteFile(filename, []byte(content), 0644)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func editSongHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	temp, err := template.ParseFiles(
+		"templates/index.tmpl",
+		"templates/song_edit.tmpl")
+	if err != nil {
+		panic(err)
+	}
+
+	filename := getSongFilename(p.ByName("song"))
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	page_data := &EditSongPage{
+		Title:     p.ByName("song"),
+		Content:   string(b),
+		IndexPage: getBasicIndexData(),
+	}
+
+	if err := temp.ExecuteTemplate(w, "song_edit.tmpl", page_data); err != nil {
+		log.Println(err)
+	}
+}
+
 func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var transpose = r.FormValue("transpose")
 	if len(transpose) == 0 {
@@ -460,7 +512,11 @@ func songHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Song:      *data,
 		IndexPage: index}
 
-	temp, err := template.ParseGlob("templates/*.tmpl")
+	temp, err := template.ParseFiles(
+		"templates/index.tmpl",
+		"templates/_song_select.tmpl",
+		"templates/_display_song.tmpl",
+		"templates/song.tmpl")
 	if err != nil {
 		panic(err)
 	}

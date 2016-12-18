@@ -1,0 +1,39 @@
+{{ template "index.tmpl" . }}
+
+{{ define "head" }}
+    {{ block "_book_nav_head" . }}
+    {{ end }}
+    <script>
+        function submit() {
+            $.ajax({
+                data: {
+                    'content': JSON.stringify($('#file-content').val())
+                },
+                type: 'POST',
+                success: function() {
+                    window.location.href = "./";
+                },
+            });
+        }
+    </script>
+    <style>
+        html, body, .container {
+          height: 100%;
+        }
+        textarea.form-control {
+          height: 100%;
+        }
+    </style>
+{{ end }}
+
+{{ define "content" }}
+<form>
+    <h1 class='title'>{{ .Title }}</h1>
+    Song file:<br>
+    <textarea class="form-control" rows='40' id='file-content'>{{ .Content }}</textarea>
+</form>
+
+<button onclick="submit()">Save</button>
+
+<div class='error'>{{ .Error }}</div>
+{{ end }}

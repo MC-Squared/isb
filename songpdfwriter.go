@@ -253,7 +253,7 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 				l := to_print[0]
 				to_print = to_print[1:]
 
-				if false && (pdf.GetStringWidth(l.Text)+offset) > (width/2) {
+				if (pdf.GetStringWidth(tr(l.Text))+offset+5) >= (width/2) {
 					new_lines := l.SplitLine()
 					to_print = append(new_lines, to_print...)
 				} else {

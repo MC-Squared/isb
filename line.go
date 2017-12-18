@@ -1,6 +1,7 @@
 package main
 
 import "strings"
+import "unicode/utf8"
 
 type Line struct {
 	Text      string
@@ -17,7 +18,7 @@ func (line Line) HasEcho() bool {
 }
 
 func (line Line) PreEchoText() string {
-	if line.EchoIndex < 0 || line.EchoIndex >= len(line.Text) {
+	if line.EchoIndex < 0 || line.EchoIndex >= utf8.RuneCountInString(line.Text) {
 		return line.Text
 	}
 
@@ -25,11 +26,11 @@ func (line Line) PreEchoText() string {
 }
 
 func (line Line) EchoText() string {
-	if line.EchoIndex < 0 || line.EchoIndex >= len(line.Text) {
+	if line.EchoIndex < 0 || line.EchoIndex >= utf8.RuneCountInString(line.Text) {
 		return ""
 	}
 
-	return line.Text[line.EchoIndex:len(line.Text)]
+	return line.Text[line.EchoIndex:utf8.RuneCountInString(line.Text)]
 }
 
 func (line Line) PreChordText(chord Chord) string {
@@ -54,7 +55,7 @@ func (line Line) PreChordText(chord Chord) string {
 		return line.Text[0:chord.Position]
 	}
 
-	pos := line.Chords[ind].Position + len(line.Chords[ind].GetText())
+	pos := line.Chords[ind].Position + utf8.RuneCountInString(line.Chords[ind].GetText())
 
 	//if the chord text is long,
 	//We might have a problem here
@@ -76,8 +77,8 @@ func (line Line) SplitLine() []Line {
 	if line.HasEcho() && line.EchoIndex > 0 {
 		split = line.EchoIndex
 	} else {
-		center := len(line.Text) / 2
-		max_window := len(line.Text) / 4
+		center := utf8.RuneCountInString(line.Text) / 2
+		max_window := utf8.RuneCountInString(line.Text) / 4
 
 		if max_window < 1 {
 			max_window = 1
@@ -130,10 +131,10 @@ func (line Line) splitLineAt(split int) []Line {
 	//now split up the chords
 	if line.HasChords() {
 		for _, c := range line.Chords {
-			if c.Position <= len(text1) {
+			if c.Position <= utf8.RuneCountInString(text1) {
 				chords1 = append(chords1, c)
 			} else {
-				chords2 = append(chords2, Chord{c.GetText(), c.Position - len(text1), c.Transpose})
+				chords2 = append(chords2, Chord{c.GetText(), c.Position - utf8.RuneCountInString(text1), c.Transpose})
 			}
 		}
 	}

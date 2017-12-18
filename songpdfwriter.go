@@ -419,6 +419,7 @@ func (song Song) getHeight(pdf *gofpdf.Fpdf, fonts BookFonts) float64 {
 		h += fonts.Section.Height(pdf)
 	}
 
+	h += fonts.SongNumber.Height(pdf)
 	h += fonts.Comment.Height(pdf) * (float64)(len(song.BeforeComments)+len(song.AfterComments))
 	//before comments also have a blank line after
 	if song.HasBeforeComments() {
@@ -440,7 +441,7 @@ func (stanza Stanza) getHeight(pdf *gofpdf.Fpdf, fonts BookFonts) float64 {
 	if stanza.HasChords() {
 		h += fonts.Chord.Height(pdf) * (float64)(len(stanza.Lines))
 	}
-	h += fonts.Stanza.Height(pdf) * (float64)(len(stanza.Lines))
+	h += fonts.Stanza.Height(pdf) * (float64)(len(stanza.Lines)+1)
 
 	return h
 }

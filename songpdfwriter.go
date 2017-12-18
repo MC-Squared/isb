@@ -123,19 +123,40 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 
 	printTitle(pdf, sbook.Title, printFonts)
 
-	for _, song := range GetSongSlice(sbook) {
-		y := pdf.GetY()
+	remaining_songs := GetSongSlice(sbook)
+	songs := make([]Song, 0)
+	new_index := 1
 
-		//two-column songs must start on col 0
-		if y > getSongStartY(pdf, false, printFonts) {
-			if song.getHeight(pdf, printFonts) > height {
+	for len(remaining_songs) > 0 {
+			if len(songs) > 0 {
 				newPage(pdf, printFonts)
-			} else if crrntCol > 0 && y+song.getHeight(pdf, printFonts) > height {
-				nextCol(pdf, printFonts)
 			}
-		}
 
-		y = printSong(pdf, &song, printFonts, true)
+			songs = remaining_songs
+			remaining_songs = make([]Song, 0)
+
+		for _, song := range songs {
+			y := pdf.GetY()
+
+			//two-column songs must start on col 0
+			if song.getHeight(pdf, printFonts) > height &&
+				(y > getSongStartY(pdf, false, printFonts) ||
+				crrntCol == 1)  {
+				remaining_songs = append(remaining_songs, song)
+				continue;
+			} else if y > getSongStartY(pdf, false, printFonts) {
+				if crrntCol == 0 && y+song.getHeight(pdf, printFonts) > height {
+					nextCol(pdf, printFonts)
+				} else if crrntCol == 1 && y+song.getHeight(pdf, printFonts) > height {
+					remaining_songs = append(remaining_songs, song)
+					continue;
+				}
+			}
+
+			song.SongNumber = new_index
+			new_index += 1
+			y = printSong(pdf, &song, printFonts, true)
+		}
 	}
 
 	buf := new(bytes.Buffer)

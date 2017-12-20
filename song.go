@@ -157,6 +157,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 				stanza_after_comments = make([]string, 0)
 			}
 		} else {
+			song_started = true
 			//check for echo marker
 			if i := strings.Index(line, "{echo:"); i >= 0 {
 				end := strings.Index(line, "}")

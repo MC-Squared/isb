@@ -128,12 +128,12 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 	new_index := 1
 
 	for len(remaining_songs) > 0 {
-			if len(songs) > 0 {
-				newPage(pdf, printFonts)
-			}
+		if len(songs) > 0 {
+			newPage(pdf, printFonts)
+		}
 
-			songs = remaining_songs
-			remaining_songs = make([]Song, 0)
+		songs = remaining_songs
+		remaining_songs = make([]Song, 0)
 
 		for _, song := range songs {
 			y := pdf.GetY()
@@ -141,15 +141,15 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 			//two-column songs must start on col 0
 			if song.getHeight(pdf, printFonts) > height &&
 				(y > getSongStartY(pdf, false, printFonts) ||
-				crrntCol == 1)  {
+					crrntCol == 1) {
 				remaining_songs = append(remaining_songs, song)
-				continue;
+				continue
 			} else if y > getSongStartY(pdf, false, printFonts) {
 				if crrntCol == 0 && y+song.getHeight(pdf, printFonts) > height {
 					nextCol(pdf, printFonts)
 				} else if crrntCol == 1 && y+song.getHeight(pdf, printFonts) > height {
 					remaining_songs = append(remaining_songs, song)
-					continue;
+					continue
 				}
 			}
 
@@ -283,7 +283,7 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 				l := to_print[0]
 				to_print = to_print[1:]
 
-				if (pdf.GetStringWidth(tr(l.Text))+offset+5) >= (width/2) {
+				if (pdf.GetStringWidth(tr(l.Text)) + offset + 5) >= (width / 2) {
 					new_lines := l.SplitLine()
 					to_print = append(new_lines, to_print...)
 				} else {

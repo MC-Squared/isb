@@ -21,6 +21,7 @@ type Song struct {
 	ShowStanzaNumbers bool
 	BeforeComments    []string
 	AfterComments     []string
+	UseLiberationFont bool
 	transpose         int
 }
 
@@ -45,6 +46,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 		lines           []Line
 		is_chorus       = false
 		stanza_show_num = true
+		useLibFont      = false
 	)
 
 	//We need to handle /r only as Mac OS <= 9 uses this as end-of-line marker
@@ -89,6 +91,9 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if strings.Contains(line, "ā") {
+			useLibFont = true
+		}
 		echo := -1
 
 		//is this a command
@@ -273,6 +278,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 			Stanzas:           stanzas,
 			BeforeComments:    song_before_comments,
 			AfterComments:     song_after_comments,
+			UseLiberationFont: useLibFont,
 			transpose:         transpose},
 		nil
 }

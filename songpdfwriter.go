@@ -176,6 +176,7 @@ func initPDF(title string) *gofpdf.Fpdf {
 	pdf.SetDisplayMode("fullpage", "TwoColumnLeft")
 	pdf.SetTitle(title, true)
 	pdf.SetAuthor("Indigo Song Book", false)
+	pdf.AddFont("LiberationSerif-Regular", "", "LiberationSerif-Regular.json")
 
 	leftMargin, rightMargin, _, _ = pdf.GetMargins()
 	xMargin = leftMargin
@@ -213,7 +214,15 @@ var (
 )
 
 func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) float64 {
-	tr := pdf.UnicodeTranslatorFromDescriptor("")
+	translatorDesc := ""
+	stanzaFont := fonts.Stanza
+
+	if song.UseLiberationFont {
+		translatorDesc = "iso-8859-4"
+		fonts.Stanza = PDFFont{"LiberationSerif-Regular", "", pStanzaSize}
+	}
+
+	tr := pdf.UnicodeTranslatorFromDescriptor(translatorDesc)
 
 	//flag so we don't print song number on the wrong page/column
 	var song_started = false
@@ -304,6 +313,7 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 
 	setXAndMargin(pdf, xMargin)
 
+	fonts.Stanza = stanzaFont
 	return pdf.GetY()
 }
 

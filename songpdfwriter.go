@@ -278,6 +278,7 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 
 			print_stanza_number := song.ShowStanzaNumbers && ind == 0 && stanza.ShowNumber && !stanza.IsChorus
 
+			setFont(pdf, fonts.Stanza)
 			//check width
 			for len(to_print) > 0 {
 				l := to_print[0]

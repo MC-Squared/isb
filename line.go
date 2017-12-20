@@ -1,22 +1,35 @@
 package main
 
-import "strings"
-import "unicode/utf8"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
+//Line represents the line of a Stanza.
+//A Line includes the Text, which is a string (i.e. the lyrics)
+//A series of Chords that appear in this Line (may be empty)
+//And an EchoIndex, indicating the portion of the Line that is an echo
+// (so it can be printed differently, i.e. italic/lighter/...)
 type Line struct {
 	Text      string
 	Chords    []Chord
 	EchoIndex int
 }
 
+//HasChords returns true if this Line contains any Chord objects,
+//false otherwise.
 func (line Line) HasChords() bool {
 	return len(line.Chords) > 0
 }
 
+//HasEcho returns true if this Line has an EchoIndex assigned,
+//false otherwise.
 func (line Line) HasEcho() bool {
 	return line.EchoIndex >= 0
 }
 
+//PreEchoText returns this Line's Text up to EchoIndex if it is set.
+//If EchoIndex is not set, then the full Text is returned.
 func (line Line) PreEchoText() string {
 	if line.EchoIndex < 0 || line.EchoIndex >= utf8.RuneCountInString(line.Text) {
 		return line.Text
@@ -25,6 +38,8 @@ func (line Line) PreEchoText() string {
 	return line.Text[0:line.EchoIndex]
 }
 
+//EchoText returns this Line's text from EchoIndex to the end of the Text if
+//EchoIndex is set. If EchoIndex is not set, an empty string is returned.
 func (line Line) EchoText() string {
 	if line.EchoIndex < 0 || line.EchoIndex >= utf8.RuneCountInString(line.Text) {
 		return ""
@@ -33,6 +48,9 @@ func (line Line) EchoText() string {
 	return line.Text[line.EchoIndex:utf8.RuneCountInString(line.Text)]
 }
 
+//PreChordText returns the substring of Text that occurs before the given Chord
+//and after the previous Chord (or the start of the Text if there is no previous
+// Chord).
 func (line Line) PreChordText(chord Chord) string {
 	//first, find the chord
 	ind := -1
@@ -66,28 +84,35 @@ func (line Line) PreChordText(chord Chord) string {
 	return line.Text[pos:chord.Position]
 }
 
-//Splits a single Line into two lines.
+//SplitLine splits a single Line into two lines.
 //If the line contains an Echo, the echo is the split point,
 //otherwise if there is a comma near the center it is used,
 //otherwise if there is a space near the center it is used,
 //if all else fails, it will split at the middle character
 func (line Line) SplitLine() []Line {
-	split := -1
+	var split int
+
+	//special case
+	// if utf8.RuneCountInString(line.Text) < 2 {
+	// 	res := make([]Line, 0)
+	// 	return append(res, line)
+	// }
+
 	//If the line has an echo, split at the echo
 	if line.HasEcho() && line.EchoIndex > 0 {
 		split = line.EchoIndex
 	} else {
 		center := utf8.RuneCountInString(line.Text) / 2
-		max_window := utf8.RuneCountInString(line.Text) / 4
+		maxWindow := utf8.RuneCountInString(line.Text) / 4
 
-		if max_window < 1 {
-			max_window = 1
+		if maxWindow < 1 {
+			maxWindow = 1
 		}
 
 		//check for comma
 		window := 1
 		split = center
-		for window <= max_window {
+		for center > 0 && window <= maxWindow {
 			split = strings.Index(line.Text[center-window:center+window], ",")
 			if split > 0 {
 				break
@@ -98,7 +123,7 @@ func (line Line) SplitLine() []Line {
 		//check for space
 		if split < 0 {
 			window = 1
-			for window <= max_window {
+			for window <= maxWindow {
 				split = strings.Index(line.Text[center-window:center+window], " ")
 				if split > 0 {
 					break
@@ -113,9 +138,15 @@ func (line Line) SplitLine() []Line {
 			split += center - window + 1 //+1 so we don't include the comma/space on the next line
 		}
 
-		if line.Text[split] == ' ' {
+		for line.Text[split] == ' ' || line.Text[split] == ',' {
 			split++
 		}
+	}
+
+	if split == 0 {
+		res := make([]Line, 1)
+		res[0] = line
+		return res
 	}
 
 	return line.splitLineAt(split)

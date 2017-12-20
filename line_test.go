@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-var chord_tests = []struct {
+var chordTests = []struct {
 	in       Line
 	expected bool
 }{
@@ -24,7 +24,7 @@ var chord_tests = []struct {
 }
 
 func TestHasChords(t *testing.T) {
-	for _, ct := range chord_tests {
+	for _, ct := range chordTests {
 		actual := ct.in.HasChords()
 
 		if actual != ct.expected {
@@ -33,7 +33,7 @@ func TestHasChords(t *testing.T) {
 	}
 }
 
-var echo_test = []struct {
+var echoTests = []struct {
 	in       Line
 	expected bool
 }{
@@ -61,7 +61,7 @@ var echo_test = []struct {
 }
 
 func TestHasEcho(t *testing.T) {
-	for _, ct := range echo_test {
+	for _, ct := range echoTests {
 		actual := ct.in.HasEcho()
 
 		if actual != ct.expected {
@@ -70,10 +70,10 @@ func TestHasEcho(t *testing.T) {
 	}
 }
 
-var pre_echo_test = []struct {
-	in            Line
-	expected_pre  string
-	expected_post string
+var preEchoTests = []struct {
+	in           Line
+	expectedPre  string
+	expectedPost string
 }{
 	{
 		Line{
@@ -110,26 +110,26 @@ var pre_echo_test = []struct {
 }
 
 func TestPreEchoText(t *testing.T) {
-	for _, ct := range pre_echo_test {
+	for _, ct := range preEchoTests {
 		actual := ct.in.PreEchoText()
 
-		if actual != ct.expected_pre {
-			t.Errorf("Line(%s), expected '%v', actual '%v'", ct.in.Text, ct.expected_pre, actual)
+		if actual != ct.expectedPre {
+			t.Errorf("Line(%s), expected '%v', actual '%v'", ct.in.Text, ct.expectedPre, actual)
 		}
 	}
 }
 
 func TestEchoText(t *testing.T) {
-	for _, ct := range pre_echo_test {
+	for _, ct := range preEchoTests {
 		actual := ct.in.EchoText()
 
-		if actual != ct.expected_post {
-			t.Errorf("Line(%s), expected '%v', actual '%v'", ct.in.Text, ct.expected_post, actual)
+		if actual != ct.expectedPost {
+			t.Errorf("Line(%s), expected '%v', actual '%v'", ct.in.Text, ct.expectedPost, actual)
 		}
 	}
 }
 
-var pre_chord_test = []struct {
+var preChordTests = []struct {
 	line     Line
 	chord    Chord
 	expected string
@@ -186,7 +186,7 @@ var pre_chord_test = []struct {
 }
 
 func TestPreChordText(t *testing.T) {
-	for _, ct := range pre_chord_test {
+	for _, ct := range preChordTests {
 		actual := ct.line.PreChordText(ct.chord)
 
 		if actual != ct.expected {
@@ -195,12 +195,12 @@ func TestPreChordText(t *testing.T) {
 	}
 }
 
-var split_line_test = []struct {
-	line           Line
-	expected1      string
-	expected2      string
-	expected_echo1 int
-	expected_echo2 int
+var splitLineTests = []struct {
+	line          Line
+	expected1     string
+	expected2     string
+	expectedEcho1 int
+	expectedEcho2 int
 }{
 	{
 		Line{
@@ -262,30 +262,85 @@ var split_line_test = []struct {
 		-1,
 		-1,
 	},
+	{
+		Line{
+			Text:      "T",
+			EchoIndex: -1,
+		},
+		"T",
+		"",
+		-1,
+		-1,
+	},
 }
 
 func TestSplitLine(t *testing.T) {
-	for _, ct := range split_line_test {
+	for _, ct := range splitLineTests {
 		actual := ct.line.SplitLine()
 
 		if actual[0].Text != ct.expected1 {
 			t.Errorf("Line(%s), expected1 '%v', actual '%v'", ct.line.Text, ct.expected1, actual[0].Text)
-		} else if actual[1].Text != ct.expected2 {
+		} else if len(actual) == 2 && actual[1].Text != ct.expected2 {
 			t.Errorf("Line(%s), expected2 '%v', actual '%v'", ct.line.Text, ct.expected2, actual[1].Text)
 		}
 	}
 }
 
 func TestSplitLineEchoIndex(t *testing.T) {
-	for _, ct := range split_line_test {
+	for _, ct := range splitLineTests {
 		actual := ct.line.SplitLine()
 
-		if actual[0].EchoIndex != ct.expected_echo1 {
-			t.Errorf("Line(%s), expected_echo1 '%v', actual '%v'", ct.line.Text, ct.expected_echo1, actual[0].EchoIndex)
+		if actual[0].EchoIndex != ct.expectedEcho1 {
+			t.Errorf("Line(%s), expectedEcho1 '%v', actual '%v'", ct.line.Text, ct.expectedEcho1, actual[0].EchoIndex)
 		}
 
-		if actual[1].EchoIndex != ct.expected_echo2 {
-			t.Errorf("Line(%s), expected_echo2 '%v', actual '%v'", ct.line.Text, ct.expected_echo2, actual[1].EchoIndex)
+		if len(actual) == 2 && actual[1].EchoIndex != ct.expectedEcho2 {
+			t.Errorf("Line(%s), expectedEcho2 '%v', actual '%v'", ct.line.Text, ct.expectedEcho2, actual[1].EchoIndex)
 		}
+	}
+}
+
+var splitLineChordTests = []struct {
+	line            Line
+	expectedChords1 []Chord
+	expectedChords2 []Chord
+}{
+	{
+		Line{
+			Text:      "Test string with comma towards the, end",
+			Chords:    []Chord{Chord{text: "A", Position: 5, Transpose: 0}, Chord{text: "B", Position: 25, Transpose: 0}},
+			EchoIndex: -1,
+		},
+		[]Chord{Chord{text: "A", Position: 5, Transpose: 0}},
+		[]Chord{Chord{text: "B", Position: 8, Transpose: 0}},
+	},
+}
+
+// text      string
+// Position  int
+// Transpose int
+
+func TestSplitLineChords(t *testing.T) {
+	for _, ct := range splitLineChordTests {
+		actual := ct.line.SplitLine()
+
+		for i := range ct.expectedChords1 {
+			if actual[0].Chords[i] != ct.expectedChords1[i] {
+				t.Errorf("Line(%s), expectedChords1 '%v', actual '%v'", ct.line.Text, ct.expectedChords1, actual[0].Chords)
+			}
+		}
+
+		for i := range ct.expectedChords2 {
+			if actual[1].Chords[i] != ct.expectedChords2[i] {
+				t.Errorf("Line(%s), expectedChords1 '%v', actual '%v'", ct.line.Text, ct.expectedChords2, actual[1].Chords)
+			}
+		}
+		// if actual[0].Chords != ct.expectedChords1 {
+		//
+		// }
+
+		// if actual[1].EchoIndex != ct.expectedEcho2 {
+		// 	t.Errorf("Line(%s), expectedEcho2 '%v', actual '%v'", ct.line.Text, ct.expectedEcho2, actual[1].EchoIndex)
+		// }
 	}
 }

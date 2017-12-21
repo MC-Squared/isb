@@ -1,11 +1,16 @@
 package main
 
+//Chord represents an individual chord in a Song.
+//Including the text displayed, its position on a lyric,
+//and any key transpositions to apply.
 type Chord struct {
 	text      string
 	Position  int
 	Transpose int
 }
 
+//GetText returns the text to be displayed for this Chord.
+//This will apply any needed key transposition.
 func (chord Chord) GetText() string {
 	return transposeKey(chord.text, chord.Transpose)
 }
@@ -25,12 +30,15 @@ var scales = map[string]int{
 	"G#": 11,
 }
 
+//transposeKey transposes the given <key> by <change> half-notes.
+//Any unknown characters are skipped, as this allows for Chord text such as
+//"G-C-G" to be transposed.
 func transposeKey(key string, change int) string {
 	if change == 0 {
 		return key
 	}
 
-	new_key := ""
+	newKey := ""
 
 	for i := 0; i < len(key); i++ {
 		k := key[i:]
@@ -41,19 +49,19 @@ func transposeKey(key string, change int) string {
 			k = key[i : i+2]
 		}
 
-		scale_ind, ok := scales[k]
+		scaleInd, ok := scales[k]
 		if !ok && len(k) > 1 {
 			k = k[0:1]
-			scale_ind, ok = scales[k]
+			scaleInd, ok = scales[k]
 		}
 
 		if !ok {
-			new_key += k
+			newKey += k
 		} else {
-			scale_ind = (scale_ind + change) % (len(scales))
+			scaleInd = (scaleInd + change) % (len(scales))
 			for k := range scales {
-				if scales[k] == scale_ind {
-					new_key += k
+				if scales[k] == scaleInd {
+					newKey += k
 				}
 			}
 		}
@@ -63,5 +71,5 @@ func transposeKey(key string, change int) string {
 		}
 	}
 
-	return new_key
+	return newKey
 }

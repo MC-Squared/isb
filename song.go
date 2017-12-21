@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-//Structs used when parsing a song file
+//Song represents an invididual song read from a .song file
 type Song struct {
 	Filename          string
 	Title             string
@@ -25,6 +25,9 @@ type Song struct {
 	transpose         int
 }
 
+//ParseSongFile attempts to read a Song from the given filename.
+//Applying any transposition to the Chords.
+//Returns the newly created Song, or error on failure.
 func ParseSongFile(filename string, transpose int) (*Song, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -36,17 +39,17 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 
 	var (
 		//Song variables
-		stanzas         []Stanza
-		stanza_count    = 1
-		title           = ""
-		section         = ""
-		scanner         = bufio.NewScanner(file)
-		song_stanza_num = true
+		stanzas       []Stanza
+		stanzaCount   = 1
+		title         = ""
+		section       = ""
+		scanner       = bufio.NewScanner(file)
+		songStanzaNum = true
 		//Stanza variables
-		lines           []Line
-		is_chorus       = false
-		stanza_show_num = true
-		useLibFont      = false
+		lines         []Line
+		isChorus      = false
+		stanzaShowNum = true
+		useLibFont    = false
 	)
 
 	//We need to handle /r only as Mac OS <= 9 uses this as end-of-line marker
@@ -80,14 +83,14 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	}
 	scanner.Split(split)
 
-	stanza_before_comments := make([]string, 0)
-	stanza_after_comments := make([]string, 0)
-	song_before_comments := make([]string, 0)
-	song_after_comments := make([]string, 0)
+	stanzaBeforeComments := make([]string, 0)
+	stanzaAfterComments := make([]string, 0)
+	songBeforeComments := make([]string, 0)
+	songAfterComments := make([]string, 0)
 
-	chord_regex := regexp.MustCompile("\\[.*?\\]")
-	bad_command_regex := regexp.MustCompile("\\{|\\}")
-	song_started := false
+	chordRegex := regexp.MustCompile("\\[.*?\\]")
+	badCommandRegex := regexp.MustCompile("\\{|\\}")
+	songStarted := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -100,7 +103,7 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 		if strings.HasPrefix(line, "{") {
 			command := strings.ToLower(line)
 			if strings.HasPrefix(command, "{start_of_chorus}") {
-				is_chorus = true
+				isChorus = true
 				continue
 			} else if strings.HasPrefix(command, "{end_of_chorus}") {
 				continue
@@ -111,21 +114,21 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 				section = parseCommand(line)
 				continue
 			} else if strings.HasPrefix(command, "{comments:") {
-				if !song_started {
-					song_before_comments = append(song_before_comments, parseCommand(line))
+				if !songStarted {
+					songBeforeComments = append(songBeforeComments, parseCommand(line))
 				} else {
 					if len(lines) > 0 {
-						stanza_after_comments = append(stanza_after_comments, parseCommand(line))
+						stanzaAfterComments = append(stanzaAfterComments, parseCommand(line))
 					} else {
-						stanza_before_comments = append(stanza_before_comments, parseCommand(line))
+						stanzaBeforeComments = append(stanzaBeforeComments, parseCommand(line))
 					}
 				}
 				continue
 			} else if strings.HasPrefix(command, "{no_number") {
-				if !song_started {
-					song_stanza_num = false
+				if !songStarted {
+					songStanzaNum = false
 				} else {
-					stanza_show_num = false
+					stanzaShowNum = false
 				}
 				continue
 			} else if i := strings.Index(command, "{echo"); i >= 0 {
@@ -139,30 +142,30 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 
 		//blank line separates stanzas
 		if len(line) == 0 {
-			song_started = true
+			songStarted = true
 
 			if len(lines) > 0 {
 				stanzas = append(stanzas, *&Stanza{
 					Lines:          lines,
-					Number:         stanza_count,
-					IsChorus:       is_chorus,
-					ShowNumber:     stanza_show_num,
-					BeforeComments: stanza_before_comments,
-					AfterComments:  stanza_after_comments})
+					Number:         stanzaCount,
+					IsChorus:       isChorus,
+					ShowNumber:     stanzaShowNum,
+					BeforeComments: stanzaBeforeComments,
+					AfterComments:  stanzaAfterComments})
 
 				//Choruses do not get stanza numbers
-				if !is_chorus {
-					stanza_count++
+				if !isChorus {
+					stanzaCount++
 				}
 
-				is_chorus = false
-				stanza_show_num = true
+				isChorus = false
+				stanzaShowNum = true
 				lines = make([]Line, 0)
-				stanza_before_comments = make([]string, 0)
-				stanza_after_comments = make([]string, 0)
+				stanzaBeforeComments = make([]string, 0)
+				stanzaAfterComments = make([]string, 0)
 			}
 		} else {
-			song_started = true
+			songStarted = true
 			//check for echo marker
 			if i := strings.Index(line, "{echo:"); i >= 0 {
 				end := strings.Index(line, "}")
@@ -171,38 +174,38 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 					fmt.Printf("Bad echo tag: %s\n", line)
 				} else {
 					//to work out the index we have to remove the chords
-					clean := chord_regex.ReplaceAllString(line, "")
+					clean := chordRegex.ReplaceAllString(line, "")
 					echo = strings.Index(clean, "{echo:")
 
-					echo_txt := line[i+len("{echo:") : end]
-					echo_txt = strings.TrimSpace(echo_txt)
+					echoTxt := line[i+len("{echo:") : end]
+					echoTxt = strings.TrimSpace(echoTxt)
 
 					//remove command from text
 					tmp := line[0:i]
-					tmp += echo_txt
+					tmp += echoTxt
 
 					line = tmp
 				}
 			}
 
-			chords_pos := chord_regex.FindAllStringIndex(line, -1)
-			chord_len := 0
+			chordsPos := chordRegex.FindAllStringIndex(line, -1)
+			chordLen := 0
 			chords := make([]Chord, 0)
 
-			for _, pos := range chords_pos {
-				chord_text := line[pos[0]+1 : pos[1]-1]
-				chord_len += pos[1] - pos[0]
-				position := pos[1] - chord_len
+			for _, pos := range chordsPos {
+				chordText := line[pos[0]+1 : pos[1]-1]
+				chordLen += pos[1] - pos[0]
+				position := pos[1] - chordLen
 
-				chords = append(chords, Chord{text: chord_text, Position: position, Transpose: transpose})
+				chords = append(chords, Chord{text: chordText, Position: position, Transpose: transpose})
 			}
 
 			//remove all chord markers
-			line = chord_regex.ReplaceAllString(line, "")
+			line = chordRegex.ReplaceAllString(line, "")
 			lines = append(lines, Line{Text: line, Chords: chords, EchoIndex: echo})
 
 			//check for bad commands
-			for _, pos := range bad_command_regex.FindAllStringIndex(line, -1) {
+			for _, pos := range badCommandRegex.FindAllStringIndex(line, -1) {
 				fmt.Println(filename)
 				fmt.Println(line)
 				for i := 0; i < pos[0]; i++ {
@@ -220,34 +223,34 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 				title = strings.TrimSpace(title)
 
 				//trim any trailing/leading puncutation
-				start_reg := regexp.MustCompile("^[a-zA-Z0-9]")
-				end_reg := regexp.MustCompile("[a-zA-Z0-9]$")
-				start_done := false
-				end_done := false
+				startReg := regexp.MustCompile("^[a-zA-Z0-9]")
+				endReg := regexp.MustCompile("[a-zA-Z0-9]$")
+				startDone := false
+				endDone := false
 
 				for {
 					if len(title) == 1 {
 						break
 					}
 
-					pos := start_reg.FindAllStringIndex(title, 1)
+					pos := startReg.FindAllStringIndex(title, 1)
 
 					//No match, title has punctuation at the start
-					if !start_done && len(pos) == 0 {
+					if !startDone && len(pos) == 0 {
 						title = title[1:]
 					} else {
-						start_done = true
+						startDone = true
 					}
 
-					pos = end_reg.FindAllStringIndex(title, 1)
+					pos = endReg.FindAllStringIndex(title, 1)
 
-					if !end_done && len(pos) == 0 {
+					if !endDone && len(pos) == 0 {
 						title = title[0 : len(title)-1]
 					} else {
-						end_done = true
+						endDone = true
 					}
 
-					if start_done && end_done {
+					if startDone && endDone {
 						break
 					}
 				}
@@ -259,13 +262,13 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 	if len(lines) > 0 {
 		stanzas = append(stanzas, Stanza{
 			Lines:          lines,
-			Number:         stanza_count,
-			IsChorus:       is_chorus,
-			ShowNumber:     stanza_show_num,
-			BeforeComments: stanza_before_comments,
-			AfterComments:  stanza_after_comments})
-	} else if len(stanza_before_comments) > 0 {
-		song_after_comments = stanza_before_comments
+			Number:         stanzaCount,
+			IsChorus:       isChorus,
+			ShowNumber:     stanzaShowNum,
+			BeforeComments: stanzaBeforeComments,
+			AfterComments:  stanzaAfterComments})
+	} else if len(stanzaBeforeComments) > 0 {
+		songAfterComments = stanzaBeforeComments
 	}
 
 	return &Song{
@@ -274,31 +277,39 @@ func ParseSongFile(filename string, transpose int) (*Song, error) {
 			Section:           section,
 			StanzaCount:       0,
 			SongNumber:        -1,
-			ShowStanzaNumbers: song_stanza_num,
+			ShowStanzaNumbers: songStanzaNum,
 			Stanzas:           stanzas,
-			BeforeComments:    song_before_comments,
-			AfterComments:     song_after_comments,
+			BeforeComments:    songBeforeComments,
+			AfterComments:     songAfterComments,
 			UseLiberationFont: useLibFont,
 			transpose:         transpose},
 		nil
 }
 
+//parseCommand parses a given command string and strips off the framing characters.
+//i.e. given "{command: setting}", it will return "setting"
 func parseCommand(command string) string {
 	return strings.TrimSpace(command[strings.Index(command, ":")+1 : strings.Index(command, "}")])
 }
 
+//GetTranspose returns the current chord transposition setting for this Song.
+//The transposition is an integer representing the half-notes up or down (+/-)
+//that the Chords are being adjusted. All Chords contained in this song should
+//have the same Transpose setting.
 func (song Song) GetTranspose() int {
 	return song.transpose
 }
 
-func (song *Song) Transpose(change_by int) {
-	song.transpose = change_by
+//Transpose will iterate through all Chords contained in this song and call
+//Chord.Transpose(changeBy) on each one.
+func (song *Song) Transpose(changeBy int) {
+	song.transpose = changeBy
 
 	for _, s := range song.Stanzas {
 		for _, l := range s.Lines {
 			//index range here because we are modifying the Chord
 			for i := range l.Chords {
-				l.Chords[i].Transpose = change_by
+				l.Chords[i].Transpose = changeBy
 			}
 		}
 	}
@@ -334,10 +345,15 @@ func (song Song) String() string {
 	return buffer.String()
 }
 
+//HasBeforeComments returns true if this Song has any BeforeComments set,
+//false otherwise.
 func (song Song) HasBeforeComments() bool {
 	return len(song.BeforeComments) > 0
 }
 
+//Link provides a substring of this Song's Filename as a way to easily
+//provide HTML links.
+//i.e. if Filename is ".../song name.song" Link will return "song name"
 func (song Song) Link() string {
 	return song.Filename[0 : len(song.Filename)-5]
 }

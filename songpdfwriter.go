@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/jung-kurt/gofpdf"
 )
@@ -57,7 +58,7 @@ var printFonts = BookFonts{
 	Title:      PDFFont{"Helvetica", "B", pStanzaSize * 1.5},
 	Section:    PDFFont{"Times", "I", pStanzaSize * 0.85},
 	TOC:        PDFFont{"Times", "", pStanzaSize},
-	Index:      PDFFont{"Helvetica", "", pStanzaSize * 1.25},
+	Index:      PDFFont{"Times", "", pStanzaSize},
 
 	StanzaIndent:       pStanzaSize * 0.75,
 	StanzaNumberIndent: (pStanzaSize * 0.75) / 2.0,
@@ -125,6 +126,7 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 
 	remaining_songs := GetSongSlice(sbook)
 	songs := make([]Song, 0)
+	songOrder := make([]Song, 0)
 	new_index := 1
 
 	for len(remaining_songs) > 0 {
@@ -156,7 +158,45 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 			song.SongNumber = new_index
 			new_index += 1
 			y = printSong(pdf, &song, printFonts, true)
+			songOrder = append(songOrder, song)
 		}
+	}
+
+	crrntCol = 0
+	newPage(pdf, printFonts)
+	printTitle(pdf, "Index", printFonts)
+	setXAndMargin(pdf, xMargin)
+	setFont(pdf, printFonts.Index)
+	// tr := pdf.UnicodeTranslatorFromDescriptor("iso-8859-4")
+
+	for i, song := range songOrder {
+		if i == len(songOrder)/2 {
+			nextCol(pdf, printFonts)
+			setXAndMargin(pdf, xMargin)
+			pdf.Ln(printFonts.Title.Height(pdf) + printFonts.Stanza.Height(pdf))
+		}
+
+		title := song.Title
+		if utf8.RuneCountInString(title) > 50 {
+			title = title[0:50] + "..."
+		}
+
+		if song.SongNumber < 10 {
+			title = "  " + strconv.Itoa(song.SongNumber) + "  " + title
+		} else {
+			title = strconv.Itoa(song.SongNumber) + "  " + title
+		}
+
+		translatorDesc := ""
+		font := printFonts.Index
+		if song.UseLiberationFont {
+			translatorDesc = "iso-8859-4"
+			font = PDFFont{"LiberationSerif-Regular", "", pStanzaSize}
+		}
+		tr := pdf.UnicodeTranslatorFromDescriptor(translatorDesc)
+		println(pdf, tr, title, font)
+		// extra space between lines to make index easier to read
+		pdf.Ln(1)
 	}
 
 	buf := new(bytes.Buffer)
@@ -182,9 +222,9 @@ func initPDF(title string) *gofpdf.Fpdf {
 	xMargin = leftMargin
 
 	width, height = pdf.GetPageSize()
-	_, top, right, bot := pdf.GetMargins()
+	_, _, right, _ := pdf.GetMargins()
 	//Subtract margins to get usable area
-	height -= (top + bot)
+	// height -= (top) // + bot)
 	width -= (leftMargin + right)
 
 	crrntCol = 0

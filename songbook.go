@@ -10,7 +10,8 @@ import (
 	"strings"
 )
 
-//Structs used when parsing a song file
+//Songbook represents a single songbook, including any options
+//used when displaying/printing
 type Songbook struct {
 	FixedOrder    bool
 	UseSection    bool
@@ -21,25 +22,35 @@ type Songbook struct {
 	Songs         map[int]Song
 }
 
+//IndexAtStart returns true if this songbook should have an index at the start
 func (sb Songbook) IndexAtStart() bool {
 	return sb.IndexPosition == IndexStart
 }
 
+//IndexAtEnd returns true if this songbook should have an index at the end
 func (sb Songbook) IndexAtEnd() bool {
 	return sb.IndexPosition == IndexEnd
 }
 
+//NoIndex returns true if this songbook should not have an index
 func (sb Songbook) NoIndex() bool {
 	return sb.IndexPosition == IndexNone
 }
 
 const (
-	IndexNone  = 0
+	//IndexNone indicates no index should be created when printing/displaying.
+	//This is the default.
+	IndexNone = 0
+	//IndexStart indicates an index should be placed at the start when printing/displaying
 	IndexStart = 1
-	IndexEnd   = 2
+	//IndexEnd indicates an index should be placed at the end when printing/displaying
+	IndexEnd = 2
 )
 
-func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
+//ParseSongbookFile parses a songbook from filename, expecting
+//any song files to be located in a songsRoot directory.
+//Returns the created Songbook or any errors that occurred.
+func ParseSongbookFile(filename string, songsRoot string) (*Songbook, error) {
 	file, err := os.Open(filename)
 
 	filename = filepath.Base(filename)
@@ -51,12 +62,12 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 	defer file.Close()
 
 	var (
-		scanner     = bufio.NewScanner(file)
-		fixed_order = false
-		use_section = false
-		use_chorus  = false
-		index_pos   = IndexNone
-		songs       = make(map[int]Song)
+		scanner       = bufio.NewScanner(file)
+		fixedOrder    = false
+		useSection    = false
+		useChorus     = false
+		indexPosition = IndexNone
+		songs         = make(map[int]Song)
 	)
 
 	//bad_command_regex := regexp.MustCompile("\\{|\\}")
@@ -70,28 +81,28 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 			if strings.HasPrefix(command, "{title:") {
 				title = parseCommand(line)
 				continue
-			} else if strings.HasPrefix(command, "{fixed_order}") {
-				fixed_order = true
+			} else if strings.HasPrefix(command, "{fixedOrder}") {
+				fixedOrder = true
 				continue
-			} else if strings.HasPrefix(command, "{index_use_sections}") {
-				use_section = true
+			} else if strings.HasPrefix(command, "{index_useSections}") {
+				useSection = true
 				continue
-			} else if strings.HasPrefix(command, "{index_use_chorus}") {
-				use_chorus = true
+			} else if strings.HasPrefix(command, "{index_useChorus}") {
+				useChorus = true
 				continue
-			} else if strings.HasPrefix(command, "{index_position:") {
+			} else if strings.HasPrefix(command, "{indexPositionition:") {
 				p := parseCommand(line)
 
 				switch p {
 				case "start":
-					index_pos = IndexStart
+					indexPosition = IndexStart
 					break
 				case "end":
-					index_pos = IndexEnd
+					indexPosition = IndexEnd
 					break
 				case "none":
 				default:
-					index_pos = IndexNone
+					indexPosition = IndexNone
 				}
 
 				continue
@@ -108,10 +119,10 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 			num := -1
 			//check for fixed numbering
 			if strings.Index(line, ",") > 0 {
-				num_str := line[0:strings.Index(line, ",")]
-				num, err = strconv.Atoi(num_str)
+				numStr := line[0:strings.Index(line, ",")]
+				num, err = strconv.Atoi(numStr)
 				if err == nil {
-					line = line[len(num_str)+1 : len(line)]
+					line = line[len(numStr)+1 : len(line)]
 				} else {
 					num = -1
 				}
@@ -122,7 +133,7 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 				line += ".song"
 			}
 
-			song, err := ParseSongFile(songs_root+"/"+line, 0)
+			song, err := ParseSongFile(songsRoot+"/"+line, 0)
 
 			if err != nil {
 				fmt.Println(num, ":", err)
@@ -138,19 +149,21 @@ func ParseSongbookFile(filename string, songs_root string) (*Songbook, error) {
 
 	return &Songbook{
 			Title:         title,
-			FixedOrder:    fixed_order,
+			FixedOrder:    fixedOrder,
 			Filename:      filename,
-			UseSection:    use_section,
-			IndexChorus:   use_chorus,
-			IndexPosition: index_pos,
+			UseSection:    useSection,
+			IndexChorus:   useChorus,
+			IndexPosition: indexPosition,
 			Songs:         songs},
 		nil
 }
 
-func GetSongOrder(sbook *Songbook) (keys []int) {
-	keys = make([]int, len(sbook.Songs))
+//GetSongOrder gets the song numbers of the Songs in this Songbook.
+//Note that Song numbers may not be sequential.
+func GetSongOrder(sb *Songbook) (keys []int) {
+	keys = make([]int, len(sb.Songs))
 	i := 0
-	for k := range sbook.Songs {
+	for k := range sb.Songs {
 		keys[i] = k
 		i++
 	}
@@ -159,19 +172,24 @@ func GetSongOrder(sbook *Songbook) (keys []int) {
 	return keys
 }
 
-func GetSongSlice(sbook *Songbook) (songs []Song) {
-	keys := GetSongOrder(sbook)
-	songs = make([]Song, len(sbook.Songs))
+//GetSongSlice creates a []Song including all the Songs included in this
+//Songbook, following the order from GetSongOrder.
+func GetSongSlice(sb *Songbook) (songs []Song) {
+	keys := GetSongOrder(sb)
+	songs = make([]Song, len(sb.Songs))
 
 	ind := 0
 	for _, k := range keys {
-		songs[ind] = sbook.Songs[k]
+		songs[ind] = sb.Songs[k]
 		ind++
 	}
 
 	return songs
 }
 
-func (sbook Songbook) Link() string {
-	return sbook.Filename[0 : len(sbook.Filename)-9]
+//Link provides a substring of this Songbook's Filename as a way to easily
+//provide HTML links.
+//i.e. if Filename is ".../song book.songlist" Link will return "song book"
+func (sb Songbook) Link() string {
+	return sb.Filename[0 : len(sb.Filename)-9]
 }

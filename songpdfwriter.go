@@ -165,27 +165,34 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 	crrntCol = 0
 	newPage(pdf, printFonts)
 	printTitle(pdf, "Index", printFonts)
-	setXAndMargin(pdf, xMargin)
+
 	setFont(pdf, printFonts.Index)
 	// tr := pdf.UnicodeTranslatorFromDescriptor("iso-8859-4")
 
-	for i, song := range songOrder {
+	for i, song := range GetSongSlice(sbook) {
 		if i == len(songOrder)/2 {
 			nextCol(pdf, printFonts)
 			setXAndMargin(pdf, xMargin)
 			pdf.Ln(printFonts.Title.Height(pdf) + printFonts.Stanza.Height(pdf))
 		}
 
-		title := song.Title
-		if utf8.RuneCountInString(title) > 50 {
-			title = title[0:50] + "..."
+		for i, s := range songOrder {
+			if s.Title == song.Title {
+				song.SongNumber = i + 1
+				break
+			}
 		}
 
-		if song.SongNumber < 10 {
-			title = "  " + strconv.Itoa(song.SongNumber) + "  " + title
-		} else {
-			title = strconv.Itoa(song.SongNumber) + "  " + title
+		title := song.Title
+		if utf8.RuneCountInString(title) > 40 {
+			title = title[0:40] + "..."
 		}
+
+		// if song.SongNumber < 10 {
+		// 	title = "  " + strconv.Itoa(song.SongNumber) + "  " + title
+		// } else {
+		// 	title = strconv.Itoa(song.SongNumber) + "  " + title
+		// }
 
 		translatorDesc := ""
 		font := printFonts.Index
@@ -194,7 +201,11 @@ func WriteBookPDF(sbook *Songbook) (*bytes.Buffer, error) {
 			font = PDFFont{"LiberationSerif-Regular", "", pStanzaSize}
 		}
 		tr := pdf.UnicodeTranslatorFromDescriptor(translatorDesc)
-		println(pdf, tr, title, font)
+
+		setXAndMargin(pdf, xMargin)
+		print(pdf, tr, title, font)
+		setXAndMargin(pdf, xMargin+width/2-20)
+		println(pdf, tr, strconv.Itoa(song.SongNumber), font)
 		// extra space between lines to make index easier to read
 		pdf.Ln(1)
 	}
@@ -222,9 +233,9 @@ func initPDF(title string) *gofpdf.Fpdf {
 	xMargin = leftMargin
 
 	width, height = pdf.GetPageSize()
-	_, _, right, _ := pdf.GetMargins()
+	_, top, right, bot := pdf.GetMargins()
 	//Subtract margins to get usable area
-	// height -= (top) // + bot)
+	height -= (top + bot)
 	width -= (leftMargin + right)
 
 	crrntCol = 0
@@ -318,6 +329,11 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 
 			print_stanza_number := song.ShowStanzaNumbers && ind == 0 && stanza.ShowNumber && !stanza.IsChorus
 
+			if len(song.Stanzas) < 2 {
+				print_stanza_number = false
+				offset -= fonts.StanzaIndent
+			}
+
 			setFont(pdf, fonts.Stanza)
 			//check width
 			for len(to_print) > 0 {
@@ -343,7 +359,7 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 		pdf.Ln(fonts.Stanza.Height(pdf))
 	}
 
-	setXAndMargin(pdf, xMargin+fonts.StanzaIndent)
+	setXAndMargin(pdf, xMargin)
 
 	//Print post-song comments
 	printlnSlice(
@@ -351,8 +367,10 @@ func printSong(pdf *gofpdf.Fpdf, song *Song, fonts BookFonts, two_columns bool) 
 		tr,
 		song.AfterComments,
 		fonts.Comment)
+	pdf.Ln(fonts.Comment.Height(pdf))
+	pdf.Ln(fonts.Stanza.Height(pdf))
 
-	setXAndMargin(pdf, xMargin)
+	// setXAndMargin(pdf, xMargin)
 
 	fonts.Stanza = stanzaFont
 	return pdf.GetY()
@@ -509,7 +527,7 @@ func (song Song) getHeight(pdf *gofpdf.Fpdf, fonts BookFonts) float64 {
 }
 
 func (stanza Stanza) getHeight(pdf *gofpdf.Fpdf, fonts BookFonts) float64 {
-	h := fonts.Comment.Height(pdf) * (float64)(len(stanza.BeforeComments)+len(stanza.AfterComments))
+	h := fonts.Comment.Height(pdf) * (float64)(len(stanza.BeforeComments)+len(stanza.AfterComments)+1)
 	if stanza.HasChords() {
 		h += fonts.Chord.Height(pdf) * (float64)(len(stanza.Lines))
 	}

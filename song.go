@@ -351,6 +351,12 @@ func (song Song) HasBeforeComments() bool {
 	return len(song.BeforeComments) > 0
 }
 
+//HasAfterComments returns true if this Song has any BeforeComments set,
+//false otherwise.
+func (song Song) HasAfterComments() bool {
+	return len(song.AfterComments) > 0
+}
+
 //Link provides a substring of this Song's Filename as a way to easily
 //provide HTML links.
 //i.e. if Filename is ".../song name.song" Link will return "song name"
